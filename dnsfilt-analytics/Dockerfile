@@ -8,12 +8,8 @@ RUN gradle build --no-daemon -x test
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Ensure certs directory exists and copy default certs
+# Ensure certs directory exists for runtime volume mounts (-v /path/to/certs:/app/certs)
 RUN mkdir -p /app/certs
-COPY certs* /app/certs/
-
-# Copy environment configuration files
-COPY .env* local.env* prod.env* ./
 
 # Copy compiled application jar
 COPY --from=builder /app/build/libs/*.jar app.jar
