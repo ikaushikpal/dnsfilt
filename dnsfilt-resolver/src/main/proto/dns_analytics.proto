@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package com.dnsfilt.dnsanalytics.proto;
+
+option java_multiple_files = true;
+option java_package = "com.dnsfilt.dnsanalytics.proto";
+
+message CategoryCount {
+  string category = 1;
+  int64 count = 2;
+  int64 blocked_count = 3;
+}
+
+message TopDomainCount {
+  string domain = 1;
+  int64 count = 2;
+  int64 blocked_count = 3;
+  int32 rank = 4;
+}
+
+message ClientMinuteStats {
+  string client_hash = 1;
+  int64 total_queries = 2;
+  int64 allowed_queries = 3;
+  int64 blocked_queries = 4;
+  int64 nxdomain_queries = 5;
+  int64 servfail_queries = 6;
+  int64 cache_hits = 7;
+  int64 cache_misses = 8;
+  int64 total_latency_ms = 9;
+  repeated CategoryCount categories = 10;
+  repeated TopDomainCount top_domains = 11;
+}
+
+message ResolverMinuteStats {
+  int64 window_timestamp = 1;
+  int64 total_queries = 2;
+  int64 allowed_queries = 3;
+  int64 blocked_queries = 4;
+  int64 nxdomain_queries = 5;
+  int64 servfail_queries = 6;
+  int64 cache_hits = 7;
+  int64 cache_misses = 8;
+  int64 total_latency_ms = 9;
+}
+
+message MinuteAggregationWindow {
+  int64 window_timestamp = 1;
+  ResolverMinuteStats resolver_stats = 2;
+  repeated ClientMinuteStats client_stats = 3;
+}
+
+message DnsAnalyticsBatch {
+  string batch_id = 1;
+  string resolver_id = 2;
+  int64 window_start_timestamp = 3;
+  int64 window_end_timestamp = 4;
+  repeated MinuteAggregationWindow minutes = 5;
+}

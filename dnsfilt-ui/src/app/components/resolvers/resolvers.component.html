@@ -1,0 +1,162 @@
+<div class="space-y-8 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
+  
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div>
+      <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-server text-[rgb(230,130,16)]"></i> Resolver Engine Cluster Management
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Virtual thread DNS resolver node scaling, versioning, and latency telemetry</p>
+    </div>
+  </div>
+
+  @if (configSuccessMessage()) {
+    <div class="bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs font-mono p-3.5 rounded-xl flex items-center gap-2 shadow-lg animate-fadeIn">
+      <i class="fa-solid fa-circle-check text-sm"></i>
+      {{ configSuccessMessage() }}
+    </div>
+  }
+
+  <!-- Cluster Orchestration & Dynamic Scaling Control Card -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl font-mono text-xs">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-800 pb-3">
+      <span class="text-white font-bold text-sm flex items-center gap-2">
+        <i class="fa-solid fa-sliders text-[rgb(230,130,16)]"></i> Cluster Scaling & Version Orchestrator
+      </span>
+      <span class="text-stone-400 text-[11px]">Syncs with OCI Orchestrator & HAProxy Load Balancer</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+      <!-- Desired Instance Count Controls -->
+      <div class="space-y-2">
+        <label class="text-stone-400 block">Desired Resolver Instances:</label>
+        <div class="flex items-center gap-2">
+          <button 
+            (click)="onUpdateCount(desiredCount() - 1)"
+            [disabled]="desiredCount() <= 1 || updatingCount()"
+            class="w-10 h-10 bg-stone-950 hover:bg-stone-800 disabled:opacity-30 border border-stone-800 rounded-lg text-white font-bold text-base transition flex items-center justify-center">
+            -
+          </button>
+
+          <span class="bg-stone-950 border border-stone-800 text-white font-bold px-6 py-2.5 rounded-lg text-sm text-center min-w-[70px]">
+            {{ desiredCount() }}
+          </span>
+
+          <button 
+            (click)="onUpdateCount(desiredCount() + 1)"
+            [disabled]="desiredCount() >= 20 || updatingCount()"
+            class="w-10 h-10 bg-stone-950 hover:bg-stone-800 disabled:opacity-30 border border-stone-800 rounded-lg text-white font-bold text-base transition flex items-center justify-center">
+            +
+          </button>
+
+          <span class="text-stone-500 text-[11px] ml-2">Active Target Count</span>
+        </div>
+      </div>
+
+      <!-- Desired Version Upgrade Form -->
+      <div class="space-y-2">
+        <label class="text-stone-400 block">Desired Microservice Version:</label>
+        <div class="flex items-center gap-2">
+          <input 
+            type="text" 
+            [ngModel]="desiredVersion()" 
+            (ngModelChange)="desiredVersion.set($event)" 
+            placeholder="e.g. 1.0.0"
+            class="bg-stone-950 border border-stone-800 text-white px-3.5 py-2.5 rounded-lg w-36 focus:outline-none focus:border-[rgb(230,130,16)]">
+
+          <button 
+            (click)="onUpdateVersion()"
+            [disabled]="updatingVersion()"
+            class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-4 py-2.5 rounded-lg transition active:scale-95 shadow-md">
+            @if (updatingVersion()) {
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+            } @else {
+              Update Version
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resolver Health KPIs -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Cluster Queries</p>
+      <h3 class="text-xl font-mono font-bold text-white">{{ summary().totalQueries | number }}</h3>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Blocked Queries</p>
+      <h3 class="text-xl font-mono font-bold text-rose-400">{{ summary().blockedQueries | number }}</h3>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Cache Hit Rate</p>
+      <h3 class="text-xl font-mono font-bold text-emerald-400">{{ summary().cacheHitPercent | number:'1.1-2' }}%</h3>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Avg Latency</p>
+      <h3 class="text-xl font-mono font-bold text-cyan-400">
+        {{ summary().avgLatencyMs > 0 ? (summary().avgLatencyMs | number:'1.1-2') + 'ms' : '< 0.1ms' }}
+      </h3>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Active Nodes</p>
+      <h3 class="text-xl font-mono font-bold text-[rgb(230,130,16)]">{{ desiredCount() }} Nodes</h3>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-4 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] font-mono uppercase">Active Clients</p>
+      <h3 class="text-xl font-mono font-bold text-indigo-400">{{ summary().activeClients | number }}</h3>
+    </div>
+  </div>
+
+  <!-- Resolver Cluster Table -->
+  <div class="bg-stone-900/60 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
+    <div>
+      <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-network-wired text-[rgb(230,130,16)]"></i> Active Resolver Node Instances
+      </h3>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Instance node health, cache ratio, and heartbeats</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4">Resolver ID</th>
+            <th class="py-2.5 px-4 text-center">Status</th>
+            <th class="py-2.5 px-4 text-right">QPS Allocation</th>
+            <th class="py-2.5 px-4 text-right">Cache Hit %</th>
+            <th class="py-2.5 px-4 text-right">P95 Latency</th>
+            <th class="py-2.5 px-4 text-center">Last Heartbeat</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @for (r of resolversData(); track r.resolverId) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 text-white font-bold flex items-center gap-2">
+                <i class="fa-solid fa-server text-stone-500"></i> {{ r.resolverId }}
+              </td>
+              <td class="py-2.5 px-4 text-center">
+                <span 
+                  [class.bg-emerald-950]="r.status === 'Online'" [class.text-emerald-300]="r.status === 'Online'" [class.border-emerald-800]="r.status === 'Online'"
+                  [class.bg-rose-950]="r.status === 'Offline'" [class.text-rose-300]="r.status === 'Offline'" [class.border-rose-800]="r.status === 'Offline'"
+                  class="px-2.5 py-0.5 rounded text-[10px] font-bold border">
+                  {{ r.statusBadge }} {{ r.status }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right text-[rgb(230,130,16)] font-bold">{{ r.qps > 0 ? (r.qps | number) : '—' }}</td>
+              <td class="py-2.5 px-4 text-right text-emerald-400">{{ r.cacheHitPercent > 0 ? r.cacheHitPercent + '%' : '—' }}</td>
+              <td class="py-2.5 px-4 text-right text-stone-200">{{ r.p95Latency }}</td>
+              <td class="py-2.5 px-4 text-center text-stone-400">{{ r.lastHeartbeat }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,355 @@
+<div class="space-y-6 sm:space-y-8 font-sans max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+  
+  <!-- Header Title & Filter Toolbar (Responsive Mobile Stack) -->
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-stone-900/90 border border-stone-800 p-4 sm:p-5 rounded-2xl shadow-xl">
+    <div>
+      <h2 class="text-lg sm:text-2xl font-mono font-bold text-white flex items-center gap-2.5">
+        <i class="fa-solid fa-chart-pie text-[rgb(230,130,16)] text-base sm:text-xl"></i> DNSFilt Analytics Overview
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-1">
+        Real-time telemetry, historical rollups, and hourly threat mitigation metrics
+      </p>
+    </div>
+
+    <!-- Time Range Presets (Touch-friendly scrollable bar on mobile) -->
+    <div class="flex flex-wrap items-center gap-1.5 font-mono text-xs w-full lg:w-auto overflow-x-auto py-1 scrollbar-none">
+      @for (range of ['1H', '24H', '7D', '30D', 'MONTH', 'CUSTOM']; track range) {
+        <button 
+          (click)="onRangeChange(range)" 
+          [class.bg-[rgb(230,130,16)]]="selectedTimeRange() === range"
+          [class.text-stone-950]="selectedTimeRange() === range"
+          [class.font-bold]="selectedTimeRange() === range"
+          [class.bg-stone-950]="selectedTimeRange() !== range"
+          [class.text-stone-300]="selectedTimeRange() !== range"
+          class="px-3 py-1.5 rounded-lg border border-stone-800 transition shrink-0 active:scale-95 shadow-sm">
+          {{ range === '1H' ? '⚡ 1H' : range === '24H' ? '24 Hours' : range === '7D' ? '7 Days' : range === '30D' ? '30 Days' : range === 'MONTH' ? '📅 Specific Month' : '🔍 Custom Range' }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Specific Month & Custom Date Range Filter Dropdowns (Expands when selected) -->
+  @if (selectedTimeRange() === 'MONTH' || selectedTimeRange() === 'CUSTOM') {
+    <div class="bg-stone-900/95 border border-[rgb(230,130,16)]/40 p-4 sm:p-5 rounded-2xl shadow-xl space-y-4 font-mono text-xs animate-fadeIn">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-stone-800 pb-3">
+        <span class="text-white font-bold flex items-center gap-2">
+          <i class="fa-solid fa-filter text-[rgb(230,130,16)]"></i>
+          {{ selectedTimeRange() === 'MONTH' ? 'Filter by Precomputed Historical Month' : 'Custom Time Range & Granularity' }}
+        </span>
+        <span class="text-[11px] text-stone-400">
+          {{ selectedTimeRange() === 'MONTH' ? 'Uses Oracle Materialized Monthly Rollups' : 'Custom Interval Query' }}
+        </span>
+      </div>
+
+      <!-- Month Selector Form -->
+      @if (selectedTimeRange() === 'MONTH') {
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <label class="text-stone-400 sm:w-32 shrink-0">Select Month:</label>
+          <select 
+            [ngModel]="selectedMonth()" 
+            (ngModelChange)="onMonthSelect($event)"
+            class="bg-stone-950 border border-stone-800 text-white px-3.5 py-2.5 rounded-xl flex-1 focus:outline-none focus:border-[rgb(230,130,16)]">
+            @for (m of availableMonths; track m.value) {
+              <option [value]="m.value">{{ m.label }}</option>
+            }
+          </select>
+        </div>
+      }
+
+      <!-- Custom Date & Granularity Form -->
+      @if (selectedTimeRange() === 'CUSTOM') {
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="text-stone-400 block mb-1">Start Date:</label>
+            <input 
+              type="date" 
+              [ngModel]="startDate()" 
+              (ngModelChange)="startDate.set($event)" 
+              class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-xl focus:outline-none focus:border-[rgb(230,130,16)]">
+          </div>
+          <div>
+            <label class="text-stone-400 block mb-1">End Date:</label>
+            <input 
+              type="date" 
+              [ngModel]="endDate()" 
+              (ngModelChange)="endDate.set($event)" 
+              class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-xl focus:outline-none focus:border-[rgb(230,130,16)]">
+          </div>
+          <div>
+            <label class="text-stone-400 block mb-1">Granularity:</label>
+            <select 
+              [ngModel]="selectedGranularity()" 
+              (ngModelChange)="selectedGranularity.set($event)"
+              class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-xl focus:outline-none focus:border-[rgb(230,130,16)]">
+              <option value="HOURLY">Hourly Intervals</option>
+              <option value="DAILY">Daily Aggregation</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-1">
+          <button 
+            (click)="onCustomDateApply()" 
+            class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-5 py-2 rounded-xl transition shadow-lg active:scale-95">
+            Apply Date Range Filter
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- 1. KPI Cards (2 Columns on Mobile, 3 on Tablet, 6 on Desktop) -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Total Queries</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-white truncate">{{ summary().totalQueries | number }}</h3>
+      <span class="text-[10px] text-emerald-400 font-mono font-semibold flex items-center gap-1">
+        <i class="fa-solid fa-arrow-trend-up"></i> {{ selectedTimeRange() }}
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Blocked Queries</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-rose-400 truncate">{{ summary().blockedQueries | number }}</h3>
+      <span class="text-[10px] text-rose-400 font-mono font-semibold flex items-center gap-1">
+        <i class="fa-solid fa-shield-virus"></i> Filtered
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Block Rate</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-[rgb(230,130,16)] truncate">{{ summary().blockRatePercent | number:'1.1-2' }}%</h3>
+      <span class="text-[10px] text-emerald-400 font-mono font-semibold flex items-center gap-1">
+        <i class="fa-solid fa-chart-line"></i> Ratio
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Cache Hit</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-emerald-400 truncate">{{ summary().cacheHitPercent | number:'1.1-2' }}%</h3>
+      <span class="text-[10px] text-emerald-400 font-mono font-semibold flex items-center gap-1">
+        <i class="fa-solid fa-bolt"></i> L1 / L2
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Avg Latency</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-cyan-400 truncate">
+        {{ summary().avgLatencyMs > 0 ? (summary().avgLatencyMs | number:'1.1-2') + 'ms' : '< 0.1ms' }}
+      </h3>
+      <span class="text-[10px] text-stone-500 font-mono truncate">Sub-millisecond</span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-3.5 sm:p-4 rounded-2xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[10px] sm:text-[11px] font-mono uppercase tracking-wider">Active Clients</p>
+      <h3 class="text-xl sm:text-2xl font-mono font-bold text-indigo-400 truncate">{{ summary().activeClients | number }}</h3>
+      <span class="text-[10px] text-stone-500 font-mono truncate">HMAC Devices</span>
+    </div>
+  </div>
+
+  <!-- 2. Interactive Mobile-Responsive Traffic Bar Chart -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div>
+        <h3 class="text-md sm:text-lg font-mono font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-chart-column text-[rgb(230,130,16)]"></i> Query & Block Traffic Trend
+        </h3>
+        <p class="text-xs text-stone-400 font-mono">
+          Interactive query volume distribution for {{ selectedTimeRange() }}
+        </p>
+      </div>
+
+      <!-- Active Point Tooltip / Inspection on Tap -->
+      @if (activePoint()) {
+        <div class="bg-stone-950 border border-stone-800 px-3.5 py-1.5 rounded-xl text-xs font-mono flex items-center gap-3 text-stone-300 shadow-lg">
+          <span class="text-white font-bold">{{ activePoint()?.time }}</span>
+          <span>Queries: <strong class="text-stone-100">{{ activePoint()?.totalQueries | number }}</strong></span>
+          <span>Blocked: <strong class="text-rose-400">{{ activePoint()?.blockedQueries | number }}</strong></span>
+        </div>
+      }
+    </div>
+
+    <!-- Responsive Chart Canvas with Horizontal Touch-Scroll on Small Screens -->
+    <div class="overflow-x-auto pb-2 scrollbar-none">
+      <div class="min-w-[600px] sm:min-w-full h-44 sm:h-52 flex items-end gap-2 sm:gap-3 pt-6 px-2 border-b border-stone-800">
+        @if (trafficData().length === 0) {
+          <div class="w-full h-full flex items-center justify-center text-stone-500 font-mono text-xs">
+            No telemetry records for this time window. Resolvers are standing by.
+          </div>
+        }
+        @for (pt of trafficData(); track pt.time) {
+          <div 
+            (mouseenter)="activePoint.set(pt)"
+            (click)="activePoint.set(pt)"
+            class="flex-1 h-full flex flex-col justify-end items-center group cursor-pointer relative">
+            
+            <!-- Bar Container -->
+            <div class="w-full max-w-[28px] bg-stone-950 rounded-t-lg overflow-hidden flex flex-col justify-end h-full border border-stone-800/80 group-hover:border-[rgb(230,130,16)] transition">
+              <!-- Blocked Portion (Rose) -->
+              <div 
+                [style.height.%]="(pt.blockedQueries * 100.0) / maxTrafficTotal()" 
+                class="w-full bg-rose-500/90 transition-all">
+              </div>
+              <!-- Allowed Portion (Amber) -->
+              <div 
+                [style.height.%]="((pt.totalQueries - pt.blockedQueries) * 100.0) / maxTrafficTotal()" 
+                class="w-full bg-[rgb(230,130,16)]/80 group-hover:bg-[rgb(230,130,16)] transition-all">
+              </div>
+            </div>
+
+            <!-- Time Label -->
+            <span class="text-[10px] text-stone-400 font-mono mt-2 truncate max-w-full group-hover:text-white transition">
+              {{ pt.time }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Chart Legend -->
+    <div class="flex items-center justify-center gap-6 font-mono text-xs pt-1 text-stone-400">
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-[rgb(230,130,16)] inline-block"></span> Allowed Queries
+      </span>
+      <span class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded bg-rose-500 inline-block"></span> Blocked / Sinkholed
+      </span>
+    </div>
+  </div>
+
+  <!-- 3. Two Grid Layout: Category Breakdown & Top Blocked Domains (Stacked on Mobile) -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+    
+    <!-- Blocked Traffic by Category -->
+    <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+      <div>
+        <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-layer-group text-[rgb(230,130,16)]"></i> Blocked Traffic by Category
+        </h3>
+        <p class="text-xs text-stone-400 font-mono mt-0.5">Top DNS filtering categories for {{ selectedTimeRange() }}</p>
+      </div>
+
+      <div class="space-y-3 font-mono text-xs">
+        @if (categoryData().length === 0) {
+          <div class="py-8 text-center text-stone-500 font-mono">No category threat blocks recorded.</div>
+        }
+        @for (cat of categoryData(); track cat.category) {
+          <div class="space-y-1">
+            <div class="flex justify-between text-stone-300">
+              <span class="font-bold flex items-center gap-2">
+                <span [class.text-rose-400]="cat.category === 'MALWARE' || cat.category === 'PHISHING'" [class.text-[rgb(230,130,16)]]="cat.category === 'ADS'">
+                  {{ cat.category }}
+                </span>
+              </span>
+              <span>{{ cat.blockedQueries | number }} queries</span>
+            </div>
+            <div class="w-full bg-stone-950 h-3.5 rounded-full overflow-hidden border border-stone-800 flex">
+              <div 
+                [style.width.%]="(cat.blockedQueries * 100.0) / maxCategoryBlocked()"
+                [class.bg-rose-500]="cat.category === 'MALWARE' || cat.category === 'PHISHING'"
+                [class.bg-[rgb(230,130,16)]]="cat.category === 'ADS'"
+                [class.bg-indigo-400]="cat.category === 'TRACKING'"
+                [class.bg-stone-500]="cat.category === 'OTHER'"
+                class="h-full rounded-full transition-all">
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Top Blocked Domains Table (Horizontally Scrollable) -->
+    <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+      <div>
+        <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-ban text-rose-400"></i> Top Blocked Domains
+        </h3>
+        <p class="text-xs text-stone-400 font-mono mt-0.5">Highest volume domain block requests</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+              <th class="py-2.5 px-3 text-center">Rank</th>
+              <th class="py-2.5 px-3">Domain</th>
+              <th class="py-2.5 px-3">Category</th>
+              <th class="py-2.5 px-3 text-right">Requests</th>
+              <th class="py-2.5 px-3 text-right">Clients</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-800/60">
+            @if (topBlockedData().length === 0) {
+              <tr>
+                <td colspan="5" class="py-8 text-center text-stone-500 font-mono">No blocked domain activity.</td>
+              </tr>
+            }
+            @for (d of topBlockedData(); track d.rank) {
+              <tr class="hover:bg-stone-800/40">
+                <td class="py-2.5 px-3 text-center text-[rgb(230,130,16)] font-bold">#{{ d.rank }}</td>
+                <td class="py-2.5 px-3 text-white font-semibold">{{ d.domain }}</td>
+                <td class="py-2.5 px-3">
+                  <span class="bg-stone-950 border border-stone-800 text-stone-300 px-2 py-0.5 rounded text-[10px]">
+                    {{ d.category }}
+                  </span>
+                </td>
+                <td class="py-2.5 px-3 text-right text-rose-400 font-bold">{{ d.requests | number }}</td>
+                <td class="py-2.5 px-3 text-right text-stone-400">{{ d.clients | number }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 4. Top DNS Clients Table -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+    <div>
+      <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-users text-[rgb(230,130,16)]"></i> Top DNS Clients
+      </h3>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Highest traffic client HMAC hashes and threat risk rating</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4">Client Hash</th>
+            <th class="py-2.5 px-4 text-right">Queries</th>
+            <th class="py-2.5 px-4 text-right">Blocked</th>
+            <th class="py-2.5 px-4 text-right">Block Rate</th>
+            <th class="py-2.5 px-4 text-right">Unique Domains</th>
+            <th class="py-2.5 px-4 text-center">Risk Level</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @if (topClientsData().length === 0) {
+            <tr>
+              <td colspan="6" class="py-8 text-center text-stone-500 font-mono">No active client traffic recorded.</td>
+            </tr>
+          }
+          @for (c of topClientsData(); track c.clientHash) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 text-[rgb(230,130,16)] font-bold flex items-center gap-2">
+                <i class="fa-solid fa-laptop-code text-stone-500"></i> {{ c.clientHash }}
+              </td>
+              <td class="py-2.5 px-4 text-right text-stone-200">{{ c.totalQueries | number }}</td>
+              <td class="py-2.5 px-4 text-right text-rose-400">{{ c.blockedQueries | number }}</td>
+              <td class="py-2.5 px-4 text-right text-[rgb(230,130,16)] font-bold">{{ c.blockRate }}%</td>
+              <td class="py-2.5 px-4 text-right text-stone-400">{{ c.distinctDomains | number }}</td>
+              <td class="py-2.5 px-4 text-center">
+                <span [class]="c.riskLevel === 'LOW' ? 'bg-emerald-950 text-emerald-300 border-emerald-800 px-2.5 py-0.5 rounded text-[10px] font-bold border' : c.riskLevel === 'MEDIUM' ? 'bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border-[rgb(230,130,16)]/40 px-2.5 py-0.5 rounded text-[10px] font-bold border' : 'bg-rose-950 text-rose-300 border-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold border'">
+                  {{ c.riskBadge }} {{ c.riskLevel }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

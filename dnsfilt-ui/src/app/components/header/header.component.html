@@ -1,0 +1,141 @@
+<nav class="w-full bg-stone-950/90 border-b border-stone-800/80 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 py-3 font-sans">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+    
+    <!-- Clickable Logo (Redirects to Home Page) -->
+    <a (click)="selectTab('home')" class="flex items-center cursor-pointer">
+      <img 
+        src="/logo.png" 
+        alt="DNSFilt" 
+        class="h-9 w-auto object-contain">
+    </a>
+
+    <!-- Center Navigation Tabs -->
+    <div class="flex items-center gap-1.5 font-mono text-xs overflow-x-auto max-w-full py-1 scrollbar-none">
+      
+      @if (!isDashboardTab()) {
+        <!-- Standard Default Public Tabs -->
+        <button 
+          (click)="selectTab('home')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'home'"
+          [class.text-stone-950]="activeTab() === 'home'"
+          [class.font-bold]="activeTab() === 'home'"
+          [class.text-stone-300]="activeTab() !== 'home'"
+          class="px-4 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-house text-xs"></i> Home
+        </button>
+
+        <button 
+          (click)="selectTab('toys')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'toys'"
+          [class.text-stone-950]="activeTab() === 'toys'"
+          [class.font-bold]="activeTab() === 'toys'"
+          [class.text-stone-300]="activeTab() !== 'toys'"
+          class="px-4 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-terminal text-xs"></i> CLI
+        </button>
+
+        <button 
+          (click)="selectTab('learn')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'learn'"
+          [class.text-stone-950]="activeTab() === 'learn'"
+          [class.font-bold]="activeTab() === 'learn'"
+          [class.text-stone-300]="activeTab() !== 'learn'"
+          class="px-4 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-book text-xs"></i> Learn
+        </button>
+      } @else {
+        <!-- Dashboard Navigation Sub-tabs -->
+        <button 
+          (click)="selectTab('home')" 
+          class="text-stone-400 hover:text-white px-3 py-2 rounded-lg transition flex items-center gap-1 shrink-0 hover:bg-stone-800/60">
+          <i class="fa-solid fa-arrow-left text-xs"></i> Home
+        </button>
+
+        <button 
+          (click)="selectTab('dashboard')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'dashboard'"
+          [class.text-stone-950]="activeTab() === 'dashboard'"
+          [class.font-bold]="activeTab() === 'dashboard'"
+          [class.text-stone-300]="activeTab() !== 'dashboard'"
+          class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-chart-pie text-xs"></i> Dashboard
+        </button>
+
+        <button 
+          (click)="selectTab('clients')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'clients'"
+          [class.text-stone-950]="activeTab() === 'clients'"
+          [class.font-bold]="activeTab() === 'clients'"
+          [class.text-stone-300]="activeTab() !== 'clients'"
+          class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-users text-xs"></i> Clients
+        </button>
+
+        <button 
+          (click)="selectTab('threats')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'threats'"
+          [class.text-stone-950]="activeTab() === 'threats'"
+          [class.font-bold]="activeTab() === 'threats'"
+          [class.text-stone-300]="activeTab() !== 'threats'"
+          class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-shield-virus text-xs text-rose-400"></i> Security
+        </button>
+
+        <button 
+          (click)="selectTab('resolvers')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'resolvers'"
+          [class.text-stone-950]="activeTab() === 'resolvers'"
+          [class.font-bold]="activeTab() === 'resolvers'"
+          [class.text-stone-300]="activeTab() !== 'resolvers'"
+          class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-server text-xs"></i> Resolvers
+        </button>
+
+        <button 
+          (click)="selectTab('admin')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'admin'"
+          [class.text-stone-950]="activeTab() === 'admin'"
+          [class.font-bold]="activeTab() === 'admin'"
+          [class.text-stone-300]="activeTab() !== 'admin'"
+          class="px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800">
+          <i class="fa-solid fa-user-lock text-xs"></i> Rules
+        </button>
+      }
+
+    </div>
+
+    <!-- Right Action: Login / Dashboard Icon & Session -->
+    <div class="flex items-center gap-3 font-mono text-xs">
+      @if (!currentUser()) {
+        <button 
+          (click)="openLogin.emit()" 
+          class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-md active:scale-95">
+          <i class="fa-solid fa-right-to-bracket text-xs"></i> Login
+        </button>
+      } @else {
+        <!-- Logged in State -->
+        <div class="flex items-center gap-2">
+          @if (!isDashboardTab()) {
+            <button 
+              (click)="selectTab('dashboard')" 
+              class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-md active:scale-95">
+              <i class="fa-solid fa-chart-pie text-xs"></i> Dashboard
+            </button>
+          }
+
+          <span class="text-emerald-400 font-semibold bg-emerald-950/80 border border-emerald-800 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+            <i class="fa-solid fa-user-shield text-xs"></i> {{ currentUser() }}
+          </span>
+
+          <button 
+            (click)="onLogout.emit()" 
+            title="Sign out of admin session"
+            class="bg-stone-800 hover:bg-rose-950 hover:text-rose-300 text-stone-300 px-3 py-1.5 rounded-lg border border-stone-700 hover:border-rose-800 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+          </button>
+        </div>
+      }
+    </div>
+
+  </div>
+</nav>

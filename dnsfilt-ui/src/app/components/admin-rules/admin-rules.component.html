@@ -1,0 +1,204 @@
+<div class="space-y-8 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
+  
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <div>
+      <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-user-lock text-[rgb(230,130,16)]"></i> Security & Domain Filtering Rules
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Define sinkhole blocklists, regex wildcards, and whitelisted domain overrides</p>
+    </div>
+
+    <button 
+      (click)="onSyncRules()" 
+      [disabled]="syncing()"
+      class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-mono font-bold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 shadow-lg active:scale-95">
+      @if (syncing()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Flushing to Redis...
+      } @else {
+        <i class="fa-solid fa-rotate text-xs"></i> Flush & Sync to Redis
+      }
+    </button>
+  </div>
+
+  @if (syncMessage()) {
+    <div class="bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs font-mono p-3.5 rounded-xl flex items-center gap-2 shadow-lg animate-fadeIn">
+      <i class="fa-solid fa-circle-check text-sm"></i>
+      {{ syncMessage() }}
+    </div>
+  }
+
+  <!-- Create New Rule Form -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
+    <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+      <i class="fa-solid fa-plus-circle text-[rgb(230,130,16)]"></i> Add Domain Policy Rule
+    </h3>
+
+    <form (ngSubmit)="onAdd()" class="grid grid-cols-1 sm:grid-cols-5 gap-4 font-mono text-xs">
+      <div class="sm:col-span-2">
+        <label class="text-stone-400 block mb-1">Domain FQDN / Pattern</label>
+        <input 
+          type="text" 
+          [ngModel]="newDomain()" 
+          (ngModelChange)="newDomain.set($event)" 
+          name="newDomain" 
+          placeholder="e.g. tracking.analytics.io" 
+          required 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+      </div>
+
+      <div>
+        <label class="text-stone-400 block mb-1">Action</label>
+        <select 
+          [ngModel]="newAction()" 
+          (ngModelChange)="newAction.set($event)" 
+          name="newAction" 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+          <option value="BLOCK">BLOCK (Sinkhole 0.0.0.0)</option>
+          <option value="ALLOW">ALLOW (Bypass Policy)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-stone-400 block mb-1">Match Scope</label>
+        <select 
+          [ngModel]="newMatchType()" 
+          (ngModelChange)="newMatchType.set($event)" 
+          name="newMatchType" 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+          <option value="DOMAIN_AND_SUBDOMAINS">Domain + Subdomains (*.domain)</option>
+          <option value="EXACT">Exact Match Only</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="text-stone-400 block mb-1">Category</label>
+        <select 
+          [ngModel]="newCategory()" 
+          (ngModelChange)="newCategory.set($event)" 
+          name="newCategory" 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+          @for (cat of categories(); track cat.name) {
+            <option [value]="cat.name">{{ cat.name }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="sm:col-span-5 flex justify-end pt-2">
+        <button 
+          type="submit" 
+          class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-mono font-bold px-6 py-2.5 rounded-lg text-xs transition flex items-center gap-2 shadow-lg">
+          <i class="fa-solid fa-save"></i> Save Governance Rule
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Domain Rules Table with Search and Pagination Controls -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-[rgb(230,130,16)]"></i> Active Domain Filtering Rules
+        <span class="text-xs text-stone-400 font-normal">({{ filteredRules().length }} rules)</span>
+      </h3>
+
+      <!-- Search Box and Page Size -->
+      <div class="flex items-center gap-2 w-full sm:w-auto font-mono text-xs">
+        <div class="relative flex-1 sm:w-64">
+          <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-500">
+            <i class="fa-solid fa-search"></i>
+          </span>
+          <input 
+            type="text" 
+            [ngModel]="searchTerm()" 
+            (ngModelChange)="searchTerm.set($event); currentPage.set(1)" 
+            placeholder="Search domain or category..." 
+            class="w-full bg-stone-950 border border-stone-800 rounded-lg pl-8 pr-3 py-1.5 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+        </div>
+
+        <select 
+          [ngModel]="pageSize()" 
+          (ngModelChange)="onPageSizeChange($event)"
+          class="bg-stone-950 border border-stone-800 text-stone-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[rgb(230,130,16)]">
+          <option [value]="10">10 / page</option>
+          <option [value]="25">25 / page</option>
+          <option [value]="50">50 / page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4">Domain Pattern</th>
+            <th class="py-2.5 px-4 text-center">Match Scope</th>
+            <th class="py-2.5 px-4 text-center">Action Policy</th>
+            <th class="py-2.5 px-4">Category</th>
+            <th class="py-2.5 px-4 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @if (paginatedRules().length === 0) {
+            <tr>
+              <td colspan="5" class="py-8 text-center text-stone-500 font-mono">No matching domain rules found.</td>
+            </tr>
+          }
+          @for (r of paginatedRules(); track r.id) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 text-white font-bold">{{ r.domain }}</td>
+              <td class="py-2.5 px-4 text-center">
+                <span [class]="r.matchType === 'DOMAIN_AND_SUBDOMAINS' ? 'bg-indigo-950 text-indigo-300 border-indigo-800 px-2.5 py-0.5 rounded text-[10px] font-bold border' : 'bg-stone-900 text-stone-300 border-stone-700 px-2.5 py-0.5 rounded text-[10px] font-bold border'">
+                  {{ r.matchType === 'DOMAIN_AND_SUBDOMAINS' ? '🌐 Subdomains (*.domain)' : '🎯 Exact Match' }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-center">
+                <span [class]="r.action === 'BLOCK' ? 'bg-rose-950 text-rose-300 border-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold border' : 'bg-emerald-950 text-emerald-300 border-emerald-800 px-2.5 py-0.5 rounded text-[10px] font-bold border'">
+                  {{ r.action === 'BLOCK' ? '⛔ BLOCK' : '✅ ALLOW' }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-[rgb(230,130,16)] font-bold">{{ r.category }}</td>
+              <td class="py-2.5 px-4 text-right">
+                <button (click)="onDelete(r.domain)" class="text-[10px] px-2.5 py-1 rounded border border-rose-900 bg-rose-950 hover:bg-rose-900 text-rose-300 transition">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls Bar -->
+    @if (totalPages() > 1) {
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-stone-800 font-mono text-xs text-stone-400">
+        <div>
+          Showing page <strong class="text-white">{{ currentPage() }}</strong> of <strong class="text-white">{{ totalPages() }}</strong>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button 
+            (click)="onPageChange(currentPage() - 1)" 
+            [disabled]="currentPage() === 1"
+            class="px-3 py-1.5 rounded-lg border border-stone-800 bg-stone-950 hover:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition">
+            <i class="fa-solid fa-chevron-left"></i> Prev
+          </button>
+
+          <span class="px-3 py-1 text-stone-300">{{ currentPage() }} / {{ totalPages() }}</span>
+
+          <button 
+            (click)="onPageChange(currentPage() + 1)" 
+            [disabled]="currentPage() === totalPages()"
+            class="px-3 py-1.5 rounded-lg border border-stone-800 bg-stone-950 hover:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition">
+            Next <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- User Management Section (Admin Only) -->
+  @if (userRole() === 'ROLE_ADMIN') {
+    <app-user-management></app-user-management>
+  }
+
+</div>

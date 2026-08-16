@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://127.0.0.1:3307/dnsfilt}
+    username: ${DB_USERNAME:dnsfilt_user}
+    password: ${DB_PASSWORD:your-password}
+    driver-class-name: com.mysql.cj.jdbc.Driver

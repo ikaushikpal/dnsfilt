@@ -1,0 +1,20 @@
+services:
+  dnsfilt-admin-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dnsfilt-admin-backend
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./certs:/app/certs:ro
+    env_file:
+      - ${ENV_FILE:-.env}
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    restart: unless-stopped

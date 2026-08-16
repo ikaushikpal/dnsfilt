@@ -1,0 +1,72 @@
+<section class="space-y-8 font-sans">
+  <div class="flex justify-between items-center">
+    <div>
+      <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-chart-line text-amber-400"></i> Live Query Analytics
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Microservice endpoint: http://localhost:8081/api/analytics</p>
+    </div>
+    <button (click)="loadData()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-mono text-xs px-3 py-1.5 rounded border border-stone-700 transition flex items-center gap-1.5">
+      <i class="fa-solid fa-rotate-right text-xs"></i> Refresh Data
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Total DNS Queries</p>
+      <h3 class="text-3xl font-mono font-bold text-white mt-1">{{ stats().totalQueries }}</h3>
+    </div>
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Blocked Queries</p>
+      <h3 class="text-3xl font-mono font-bold text-rose-400 mt-1">{{ stats().blockedQueries }}</h3>
+    </div>
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Block Rate</p>
+      <h3 class="text-3xl font-mono font-bold text-amber-400 mt-1">{{ stats().blockRatePercent }}%</h3>
+    </div>
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">L1 Caffeine Latency</p>
+      <h3 class="text-3xl font-mono font-bold text-emerald-400 mt-1">&lt; 0.1 ms</h3>
+    </div>
+  </div>
+
+  <!-- Live Kafka Log Stream -->
+  <div class="bg-stone-900/60 border border-stone-800 rounded-xl p-6 space-y-4">
+    <h3 class="text-md font-mono font-bold text-white flex items-center justify-between">
+      <span class="flex items-center gap-2">
+        <i class="fa-solid fa-tower-cell text-amber-400"></i> Live Kafka Query Audit Stream
+      </span>
+      <span class="text-xs text-stone-400 font-normal font-mono">Topic: dns-query-logs</span>
+    </h3>
+    
+    <div class="overflow-y-auto max-h-96 space-y-1.5 font-mono text-xs">
+      @for (l of logs(); track l.id) {
+        <div class="flex items-center justify-between bg-stone-950 p-2.5 rounded border border-stone-800">
+          <div class="flex items-center gap-3">
+            <span 
+              [class.bg-rose-950]="l.status === 'BLOCKED'"
+              [class.text-rose-300]="l.status === 'BLOCKED'"
+              [class.border-rose-800]="l.status === 'BLOCKED'"
+              [class.bg-emerald-950]="l.status !== 'BLOCKED'"
+              [class.text-emerald-300]="l.status !== 'BLOCKED'"
+              [class.border-emerald-800]="l.status !== 'BLOCKED'"
+              class="px-2 py-0.5 rounded text-[10px] font-bold border">
+              {{ l.status }}
+            </span>
+            <span class="text-white font-semibold">{{ l.domain }}</span>
+            <span class="text-stone-400 text-[10px]">({{ l.qtype }})</span>
+          </div>
+          <div class="flex items-center gap-4 text-stone-400 text-[11px]">
+            <span>{{ l.latencyMs }}ms</span>
+            <span class="text-stone-500">{{ l.timestamp | date:'HH:mm:ss' }}</span>
+          </div>
+        </div>
+      } @empty {
+        <div class="py-8 text-center text-stone-500 font-sans">
+          No query logs stored yet. Run queries like <code class="text-amber-400 font-mono">dig google.com &#64;127.0.0.1 -p 2053</code> to generate logs!
+        </div>
+      }
+    </div>
+  </div>
+</section>

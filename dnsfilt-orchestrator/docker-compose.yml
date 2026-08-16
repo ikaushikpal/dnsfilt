@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  dnsfilt-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dnsfilt-orchestrator
+    restart: unless-stopped
+    ports:
+      - "${ORCHESTRATOR_PORT:-8000}:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HAPROXY_LOCAL_CONFIG:-../haproxy/haproxy.cfg}:${HAPROXY_CONFIG_PATH:-/etc/haproxy/haproxy.cfg}
+      - ./data:/app/data
+    env_file:
+      - ${ENV_FILE:-.env}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

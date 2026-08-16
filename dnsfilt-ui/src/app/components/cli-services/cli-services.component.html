@@ -1,0 +1,140 @@
+<section class="space-y-8 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
+  
+  <!-- Header & OS Selector Toolbar: STRICTLY 1 SINGLE LINE -->
+  <div class="bg-stone-900/60 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      
+      <!-- OS Selection Buttons (Single Horizontal Row) -->
+      <div class="flex flex-row items-center flex-nowrap overflow-x-auto gap-2 py-1 scrollbar-none max-w-full">
+        <span class="text-xs font-mono text-stone-400 shrink-0 mr-1">Select OS:</span>
+
+        <button 
+          (click)="selectedOs.set('mac')"
+          [class.bg-[rgb(230,130,16)]]="selectedOs() === 'mac'"
+          [class.text-stone-950]="selectedOs() === 'mac'"
+          [class.font-bold]="selectedOs() === 'mac'"
+          [class.text-stone-300]="selectedOs() !== 'mac'"
+          [class.bg-stone-800]="selectedOs() !== 'mac'"
+          class="text-xs font-mono px-3.5 py-2 rounded-lg border border-stone-700 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <i class="fa-brands fa-apple text-sm"></i> macOS (dig)
+        </button>
+
+        <button 
+          (click)="selectedOs.set('linux')"
+          [class.bg-[rgb(230,130,16)]]="selectedOs() === 'linux'"
+          [class.text-stone-950]="selectedOs() === 'linux'"
+          [class.font-bold]="selectedOs() === 'linux'"
+          [class.text-stone-300]="selectedOs() !== 'linux'"
+          [class.bg-stone-800]="selectedOs() !== 'linux'"
+          class="text-xs font-mono px-3.5 py-2 rounded-lg border border-stone-700 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <i class="fa-brands fa-linux text-sm"></i> Linux (dig)
+        </button>
+
+        <button 
+          (click)="selectedOs.set('win-ps')"
+          [class.bg-[rgb(230,130,16)]]="selectedOs() === 'win-ps'"
+          [class.text-stone-950]="selectedOs() === 'win-ps'"
+          [class.font-bold]="selectedOs() === 'win-ps'"
+          [class.text-stone-300]="selectedOs() !== 'win-ps'"
+          [class.bg-stone-800]="selectedOs() !== 'win-ps'"
+          class="text-xs font-mono px-3.5 py-2 rounded-lg border border-stone-700 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <i class="fa-brands fa-windows text-sm text-sky-400"></i> Win PowerShell
+        </button>
+
+        <button 
+          (click)="selectedOs.set('win-cmd')"
+          [class.bg-[rgb(230,130,16)]]="selectedOs() === 'win-cmd'"
+          [class.text-stone-950]="selectedOs() === 'win-cmd'"
+          [class.font-bold]="selectedOs() === 'win-cmd'"
+          [class.text-stone-300]="selectedOs() !== 'win-cmd'"
+          [class.bg-stone-800]="selectedOs() !== 'win-cmd'"
+          class="text-xs font-mono px-3.5 py-2 rounded-lg border border-stone-700 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+          <i class="fa-brands fa-windows text-sm text-stone-400"></i> Win CMD
+        </button>
+      </div>
+
+      <!-- Search Filter -->
+      <div class="relative w-full md:w-72 shrink-0">
+        <input 
+          type="text" 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event)" 
+          placeholder="Filter by record type or domain..." 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3.5 py-2 text-xs text-stone-200 font-mono focus:outline-none focus:border-[rgb(230,130,16)]">
+      </div>
+    </div>
+  </div>
+
+  <!-- Services Table -->
+  <div class="space-y-4">
+    <div class="flex justify-between items-center px-1">
+      <h2 class="text-lg font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-[rgb(230,130,16)]"></i> Supported DNS Record Commands
+        <span class="text-xs font-normal text-[rgb(230,130,16)] bg-stone-900 border border-stone-800 px-3 py-1 rounded-lg font-mono">
+          @if (selectedOs() === 'mac' || selectedOs() === 'linux') { macOS / Linux dig }
+          @else if (selectedOs() === 'win-ps') { Windows PowerShell }
+          @else { Windows CMD nslookup }
+        </span>
+      </h2>
+      <span class="text-xs font-mono text-stone-400">Click command to copy</span>
+    </div>
+
+    <div class="border border-stone-800 rounded-xl overflow-hidden bg-stone-900/40 shadow-xl">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs font-mono border-collapse">
+          <thead>
+            <tr class="bg-stone-950 border-b border-stone-800 text-stone-400 text-[11px] uppercase tracking-wider">
+              <th class="py-3.5 px-5 w-48 shrink-0">Record Type</th>
+              <th class="py-3.5 px-5">Description & Purpose</th>
+              <th class="py-3.5 px-5 w-[360px] shrink-0">Command (Click to Copy)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-800/60">
+            @for (c of filteredCommands(); track c.name) {
+              <tr class="hover:bg-stone-800/40 transition group">
+                
+                <td class="py-4 px-5 align-top">
+                  <div class="flex flex-col items-start gap-1.5">
+                    <span class="bg-stone-950 text-[rgb(230,130,16)] border border-[rgb(230,130,16)]/60 px-2.5 py-1 rounded-md text-xs font-mono font-bold tracking-wide">
+                      {{ c.recordType }}
+                    </span>
+                    <span class="font-bold text-stone-200 text-xs mt-0.5">{{ c.name }}</span>
+                    <span class="text-[10px] text-stone-400 font-normal font-sans">{{ c.category }}</span>
+                  </div>
+                </td>
+
+                <td class="py-4 px-5 align-top text-stone-300 font-sans text-xs leading-relaxed space-y-1.5">
+                  <p>{{ c.description }}</p>
+                  <div class="font-mono text-[11px] text-emerald-400 bg-stone-950 border border-stone-800 px-2.5 py-1 rounded inline-block">
+                    Expected Output: <span class="text-stone-300">{{ c.expectedResult }}</span>
+                  </div>
+                </td>
+
+                <td class="py-4 px-5 align-top">
+                  <button 
+                    (click)="onCopyCommand(c)" 
+                    title="Click to copy exact command for selected OS"
+                    class="w-full text-left bg-stone-950 hover:bg-stone-800 border border-stone-800 hover:border-[rgb(230,130,16)]/60 text-emerald-400 px-3.5 py-3 rounded-lg font-mono text-xs transition flex items-center justify-between gap-3 group-hover:shadow-md">
+                    <span class="truncate font-semibold">{{ getCommandForOs(c) }}</span>
+                    <span class="text-[10px] text-stone-950 font-sans font-bold shrink-0 bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] px-2.5 py-1 rounded flex items-center gap-1.5 transition">
+                      <i class="fa-solid fa-copy text-xs"></i>
+                      Copy
+                    </span>
+                  </button>
+                </td>
+
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="3" class="py-8 text-center text-stone-400 font-sans">
+                  No commands matching "{{ searchQuery() }}".
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</section>

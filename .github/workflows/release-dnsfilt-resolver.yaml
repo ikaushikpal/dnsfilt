@@ -1,0 +1,223 @@
+# ==============================================================================
+# Workflow Name: Release dnsfilt-resolver Container
+# Purpose: Automatically calculates SemVer version tag from conventional commit/PR,
+#          creates git tags, and builds & pushes multi-arch Docker image
+#          ('ikaushikpal/dnsfilt-resolver') for linux/amd64 and linux/arm64
+#          whenever changes inside 'dnsfilt-resolver/' are pushed to main.
+# ==============================================================================
+name: Release dnsfilt-resolver Container
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dnsfilt-resolver/**'
+      - '.github/workflows/release-dnsfilt-resolver.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release-dnsfilt-resolver
+  cancel-in-progress: false
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Compute Version And Create Tags
+  # ----------------------------------------------------------------------------
+  version-and-tag:
+    name: Compute Version And Create Tags
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      bump: ${{ steps.bump.outputs.bump }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect merged PR metadata
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.sha;
+
+            let pr = null;
+            try {
+              const associated = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner,
+                repo,
+                commit_sha: sha,
+              });
+
+              if (associated.data?.length > 0) {
+                const mergedFirst = associated.data
+                  .filter(p => p.merged_at)
+                  .sort((a, b) => new Date(b.merged_at) - new Date(a.merged_at));
+                pr = mergedFirst[0] || associated.data[0];
+              }
+            } catch (e) {
+              core.warning(`Unable to locate PR metadata: ${e.message}`);
+            }
+
+            if (!pr) {
+              const message = context.payload.head_commit?.message || '';
+              const match = message.match(/#(\d+)/);
+              if (match) {
+                try {
+                  const fetched = await github.rest.pulls.get({
+                    owner,
+                    repo,
+                    pull_number: Number(match[1]),
+                  });
+                  pr = fetched.data;
+                } catch (err) {}
+              }
+            }
+
+            if (!pr) {
+              core.setOutput('pr_title', '');
+              core.setOutput('pr_branch', '');
+              return;
+            }
+
+            core.setOutput('pr_title', pr.title || '');
+            core.setOutput('pr_branch', pr.head?.ref || '');
+
+      - name: Compute semantic version bump
+        id: bump
+        shell: bash
+        env:
+          PR_TITLE: ${{ steps.pr.outputs.pr_title }}
+          PR_BRANCH: ${{ steps.pr.outputs.pr_branch }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+
+          git fetch --tags --force
+
+          # Find latest resolver semver tag (e.g. resolver-v1.0.0 or resolver-1.0.0 or 1.0.0)
+          PREV_TAG=$(
+            git tag --list 'resolver-v*' \
+              --sort=-version:refname \
+              | sed 's/resolver-v//' \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+              | head -n 1
+          )
+
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(
+              git tag --list \
+                --sort=-version:refname \
+                | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+                | head -n 1
+            )
+          fi
+
+          PREV_TAG=${PREV_TAG:-0.0.0}
+
+          SIGNAL=$(printf '%s %s %s' "${PR_TITLE:-}" "${PR_BRANCH:-}" "${COMMIT_MSG:-}" | tr '[:upper:]' '[:lower:]')
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$PREV_TAG"
+          BUMP="patch"
+
+          if [[ "$SIGNAL" == *"feat!"* ]] || [[ "$SIGNAL" == *"breaking"* ]]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            BUMP="major"
+          elif [[ "$SIGNAL" =~ (^|[[:space:]])feat(\(|:|[[:space:]]|$) ]]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            BUMP="minor"
+          else
+            PATCH=$((PATCH + 1))
+            BUMP="patch"
+          fi
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+
+      - name: Create git tag
+        shell: bash
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          TAG_NAME="resolver-v${VERSION}"
+          if git ls-remote --tags origin | grep -q "refs/tags/${TAG_NAME}$"; then
+            echo "Tag ${TAG_NAME} already exists."
+          else
+            git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Build & Push Multi-Arch Docker Image
+  # ----------------------------------------------------------------------------
+  docker-build-and-push:
+    name: Build & Push Multi-Arch Resolver Image
+    needs:
+      - version-and-tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set Up QEMU (ARM64 Emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set Up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve Image Repository
+        id: image
+        run: |
+          set -euo pipefail
+          if [ -n "${{ secrets.DOCKERHUB_REPOSITORY_RESOLVER }}" ]; then
+            IMAGE_REPO="${{ secrets.DOCKERHUB_REPOSITORY_RESOLVER }}"
+          elif [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+            IMAGE_REPO="${{ secrets.DOCKERHUB_USERNAME }}/dnsfilt-resolver"
+          else
+            IMAGE_REPO="ikaushikpal/dnsfilt-resolver"
+          fi
+          echo "repo=$IMAGE_REPO" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Multi-Arch Image
+        uses: docker/build-push-action@v6
+        with:
+          context: dnsfilt-resolver
+          file: dnsfilt-resolver/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.image.outputs.repo }}:latest
+            ${{ steps.image.outputs.repo }}:${{ needs.version-and-tag.outputs.version }}
+            ${{ steps.image.outputs.repo }}:v${{ needs.version-and-tag.outputs.version }}
+          cache-from: type=gha,scope=dnsfilt-resolver
+          cache-to: type=gha,mode=max,scope=dnsfilt-resolver
+          provenance: true
+          sbom: true

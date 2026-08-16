@@ -1,0 +1,23 @@
+services:
+  dnsfilt-resolver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dnsfilt-resolver
+    ports:
+      - "2053:2053/udp"
+    volumes:
+      - ./certs:/app/certs:ro
+    env_file:
+      - ${ENV_FILE:-.env}
+    environment:
+      - PORT=2053
+      - APP_ENV=${APP_ENV:-}
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+    restart: unless-stopped

@@ -1,0 +1,97 @@
+<div class="bg-stone-900/70 border border-stone-800 rounded-xl p-8 space-y-6 font-sans shadow-xl">
+  
+  <div class="flex items-center justify-between border-b border-stone-800 pb-4">
+    <div>
+      <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-users text-amber-400"></i> Admin User Management
+      </h3>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Manage operator accounts, credentials, and RBAC security roles</p>
+    </div>
+    <span class="bg-stone-950 border border-stone-800 text-stone-300 font-mono text-xs font-bold px-3 py-1 rounded">
+      Total Users: {{ users().length }}
+    </span>
+  </div>
+
+  <!-- Create New User Form -->
+  <form (ngSubmit)="onCreate()" class="space-y-3 pt-1">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="text-stone-400 block text-[11px] font-mono mb-1">New Username</label>
+        <input 
+          type="text" 
+          [ngModel]="newUserName()" 
+          (ngModelChange)="newUserName.set($event)" 
+          name="newUserName" 
+          placeholder="e.g. operator_john" 
+          required 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+      </div>
+      
+      <div>
+        <label class="text-stone-400 block text-[11px] font-mono mb-1">Password</label>
+        <input 
+          type="password" 
+          [ngModel]="newUserPass()" 
+          (ngModelChange)="newUserPass.set($event)" 
+          name="newUserPass" 
+          placeholder="••••••••" 
+          required 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400">
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row gap-3 items-end pt-1">
+      <div class="flex-1 w-full">
+        <label class="text-stone-400 block text-[11px] font-mono mb-1">Role Permission</label>
+        <select 
+          [ngModel]="newUserRole()" 
+          (ngModelChange)="newUserRole.set($event)" 
+          name="newUserRole" 
+          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none">
+          <option value="ROLE_OPERATOR">ROLE_OPERATOR (Telemetry & Logs View)</option>
+          <option value="ROLE_ADMIN">ROLE_ADMIN (Full Domain Governance Access)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-mono font-bold px-6 py-2.5 rounded-lg text-xs transition flex items-center justify-center gap-2 shrink-0">
+        <i class="fa-solid fa-user-plus text-xs"></i> Create Operator User
+      </button>
+    </div>
+  </form>
+
+  <!-- User Accounts List -->
+  <div class="space-y-3 pt-4 border-t border-stone-800/80">
+    <h4 class="text-xs font-mono font-bold text-stone-300">Registered System Accounts</h4>
+
+    <div class="overflow-y-auto max-h-64 space-y-2 font-mono text-xs">
+      @for (u of users(); track u.id) {
+        <div class="flex justify-between items-center bg-stone-950 p-3.5 rounded-lg border border-stone-800">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-amber-400/10 border border-amber-400/30 text-amber-400 rounded-lg flex items-center justify-center text-xs">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <div>
+              <span class="text-white font-bold text-xs">{{ u.username }}</span>
+              <span class="bg-stone-900 border border-stone-800 text-amber-400 text-[10px] px-2 py-0.5 rounded ml-2 font-mono">
+                {{ u.role }}
+              </span>
+            </div>
+          </div>
+
+          @if (u.username !== 'admin') {
+            <button (click)="onDelete(u.id)" class="text-xs text-stone-400 hover:text-rose-400 transition flex items-center gap-1">
+              <i class="fa-solid fa-trash text-[10px]"></i> Delete Account
+            </button>
+          } @else {
+            <span class="text-[10px] text-stone-500 font-mono italic">Primary Superadmin</span>
+          }
+        </div>
+      } @empty {
+        <div class="py-6 text-center text-stone-500 font-sans text-xs">
+          No user accounts registered.
+        </div>
+      }
+    </div>
+  </div>
+
+</div>

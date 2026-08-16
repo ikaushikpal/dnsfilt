@@ -1,0 +1,66 @@
+<div class="min-h-[70vh] flex items-center justify-center p-4 font-sans max-w-7xl mx-auto">
+  <div class="bg-stone-900/90 border border-stone-800 rounded-2xl p-8 max-w-md w-full space-y-6 shadow-2xl backdrop-blur-md">
+    
+    <div class="text-center space-y-2">
+      <div class="w-14 h-14 bg-[rgb(230,130,16)]/10 border border-[rgb(230,130,16)]/30 text-[rgb(230,130,16)] rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-lg">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h2 class="text-xl font-mono font-bold text-white">Security Gateway Sign In</h2>
+      <p class="text-xs text-stone-400 font-mono">Sign in to access Live Analytics and Security Rules Admin</p>
+    </div>
+
+    @if (error()) {
+      <div class="bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-mono p-3 rounded-lg flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        {{ error() }}
+      </div>
+    }
+
+    <form (ngSubmit)="onSubmit()" class="space-y-4 font-mono text-xs">
+      <div>
+        <label class="text-stone-400 block mb-1">Username</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-500">
+            <i class="fa-solid fa-user text-xs"></i>
+          </span>
+          <input 
+            type="text" 
+            [ngModel]="username()" 
+            (ngModelChange)="username.set($event)" 
+            name="username" 
+            required 
+            autocomplete="username"
+            class="w-full bg-stone-950 border border-stone-800 rounded-lg pl-10 pr-3.5 py-2.5 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-stone-400 block mb-1">Password</label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-stone-500">
+            <i class="fa-solid fa-key text-xs"></i>
+          </span>
+          <input 
+            type="password" 
+            [ngModel]="password()" 
+            (ngModelChange)="password.set($event)" 
+            name="password" 
+            required 
+            autocomplete="current-password"
+            class="w-full bg-stone-950 border border-stone-800 rounded-lg pl-10 pr-3.5 py-2.5 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        [disabled]="loading()"
+        class="w-full bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold py-3 rounded-lg transition flex items-center justify-center gap-2 text-xs shadow-lg">
+        @if (loading()) {
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Authenticating...
+        } @else {
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In
+        }
+      </button>
+    </form>
+  </div>
+</div>

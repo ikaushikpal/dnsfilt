@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'com.dnsfilt'
+version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['--release', '21']
+}
+
+repositories {
+    mavenCentral()
+}
+
+application {
+    mainClass = 'com.dnsfilt.dnsresolver.Main'
+}
+
+dependencies {
+    implementation 'dnsjava:dnsjava:3.6.0'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'redis.clients:jedis:5.2.0'
+    implementation 'org.apache.kafka:kafka-clients:3.7.0'
+    implementation 'com.google.protobuf:protobuf-java:4.26.1'
+    implementation 'org.slf4j:slf4j-simple:2.0.12'
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+    implementation 'com.github.luben:zstd-jni:1.5.5-1'
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:4.26.1'
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'com.dnsfilt.dnsresolver.Main'
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    // Exclude custom SPI resolver provider so system InetAddress uses standard JVM DNS resolver
+    exclude 'META-INF/services/java.net.spi.InetAddressResolverProvider'
+}

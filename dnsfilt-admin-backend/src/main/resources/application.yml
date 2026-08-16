@@ -1,0 +1,18 @@
+server:
+  port: ${ADMIN_BACKEND_PORT:${ADMIN_PORT:${PORT:8080}}}
+
+spring:
+  application:
+    name: dnsfilt-admin-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+redis:
+  url: ${REDIS_URL:redis://localhost:6379}
+
+orchestrator:
+  url: ${ORCHESTRATOR_URL:http://dnsfilt-orchestrator:8000/internal/reconcile}

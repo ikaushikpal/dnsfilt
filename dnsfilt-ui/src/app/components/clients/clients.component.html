@@ -1,0 +1,236 @@
+<div class="space-y-8 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
+  
+  <!-- Header & Client Search Toolbar -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-stone-900/90 border border-stone-800 p-5 rounded-2xl shadow-xl">
+    <div>
+      <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-users text-[rgb(230,130,16)]"></i> Client Telemetry & Device Analytics
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Search by IP address or client HMAC hash to inspect query telemetry</p>
+    </div>
+
+    <!-- Search / Enter IP or Hash Form -->
+    <form (ngSubmit)="onSearchSubmit()" class="flex items-center gap-2 w-full sm:w-auto font-mono text-xs">
+      <div class="relative flex-1 sm:w-72">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-stone-500">
+          <i class="fa-solid fa-search"></i>
+        </span>
+        <input 
+          type="text" 
+          [ngModel]="searchQuery()" 
+          (ngModelChange)="searchQuery.set($event)" 
+          name="searchQuery" 
+          placeholder="Enter IP (192.168.1.50) or Hash..." 
+          class="w-full bg-stone-950 border border-stone-800 rounded-xl pl-9 pr-3.5 py-2 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+      </div>
+
+      <button 
+        type="submit" 
+        class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-4 py-2 rounded-xl transition shrink-0 active:scale-95 shadow-md">
+        Inspect
+      </button>
+
+      @if (selectedClient()) {
+        <button 
+          type="button"
+          (click)="clearSelection()"
+          class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-2 rounded-xl transition shrink-0">
+          Clear
+        </button>
+      }
+    </form>
+  </div>
+
+  <!-- Deep Dive (Only Shown When a Client Is Selected / Inspected) -->
+  @if (selectedClient()) {
+    <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-6 space-y-6 shadow-xl font-mono text-xs animate-fadeIn">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-800/80 pb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-[rgb(230,130,16)]/10 border border-[rgb(230,130,16)]/30 text-[rgb(230,130,16)] flex items-center justify-center text-lg shadow-inner">
+            <i class="fa-solid fa-fingerprint"></i>
+          </div>
+          <div>
+            <span class="text-[10px] text-stone-500 uppercase tracking-wider">Active Inspected Client</span>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              {{ selectedClient() }}
+              @if (selectedClientInfo()) {
+                <span [class]="selectedClientInfo()?.riskLevel === 'LOW' ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : selectedClientInfo()?.riskLevel === 'MEDIUM' ? 'bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border-[rgb(230,130,16)]/40' : 'bg-rose-950 text-rose-300 border-rose-800'" class="border text-[10px] px-2.5 py-0.5 rounded font-bold">
+                  {{ selectedClientInfo()?.riskBadge }} Risk: {{ selectedClientInfo()?.riskLevel }}
+                </span>
+              }
+            </h3>
+          </div>
+        </div>
+
+        <button 
+          (click)="clearSelection()" 
+          class="text-stone-400 hover:text-white text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-stone-800 bg-stone-950 hover:bg-stone-800 transition">
+          <i class="fa-solid fa-xmark"></i> Close Deep-Dive
+        </button>
+      </div>
+
+      <!-- Client Summary Metric Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 shadow-inner">
+          <p class="text-stone-400 text-[10px] uppercase">Total Queries</p>
+          <h4 class="text-xl font-bold text-white mt-1">{{ (selectedClientInfo()?.totalQueries || 0) | number }}</h4>
+        </div>
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 shadow-inner">
+          <p class="text-stone-400 text-[10px] uppercase">Blocked Queries</p>
+          <h4 class="text-xl font-bold text-rose-400 mt-1">{{ (selectedClientInfo()?.blockedQueries || 0) | number }}</h4>
+        </div>
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 shadow-inner">
+          <p class="text-stone-400 text-[10px] uppercase">Block Rate</p>
+          <h4 class="text-xl font-bold text-[rgb(230,130,16)] mt-1">{{ (selectedClientInfo()?.blockRate || 0) | number:'1.1-2' }}%</h4>
+        </div>
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 shadow-inner">
+          <p class="text-stone-400 text-[10px] uppercase">Unique Domains</p>
+          <h4 class="text-xl font-bold text-indigo-400 mt-1">{{ (selectedClientInfo()?.distinctDomains || 0) | number }}</h4>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Active Clients Roster Table -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-6 space-y-4 shadow-xl font-mono text-xs">
+    <div class="flex justify-between items-center">
+      <h3 class="text-md font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-list text-[rgb(230,130,16)]"></i> Monitored Network Clients List
+        <span class="text-xs text-stone-400 font-normal">({{ filteredClients().length }} active clients)</span>
+      </h3>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4">Client HMAC Hash</th>
+            <th class="py-2.5 px-4 text-right">Queries</th>
+            <th class="py-2.5 px-4 text-right">Blocked</th>
+            <th class="py-2.5 px-4 text-right">Block Rate</th>
+            <th class="py-2.5 px-4 text-center">Risk Rating</th>
+            <th class="py-2.5 px-4 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @if (filteredClients().length === 0) {
+            <tr>
+              <td colspan="6" class="py-8 text-center text-stone-500 font-mono">No matching client hashes found.</td>
+            </tr>
+          }
+          @for (c of filteredClients(); track c.clientHash) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 font-bold flex items-center gap-2" [class.text-[rgb(230,130,16)]]="selectedClient() === c.clientHash" [class.text-white]="selectedClient() !== c.clientHash">
+                <i class="fa-solid fa-laptop-code text-stone-500"></i> {{ c.clientHash }}
+              </td>
+              <td class="py-2.5 px-4 text-right text-stone-200">{{ c.totalQueries | number }}</td>
+              <td class="py-2.5 px-4 text-right text-rose-400">{{ c.blockedQueries | number }}</td>
+              <td class="py-2.5 px-4 text-right text-[rgb(230,130,16)] font-bold">{{ c.blockRate }}%</td>
+              <td class="py-2.5 px-4 text-center">
+                <span [class]="c.riskLevel === 'LOW' ? 'bg-emerald-950 text-emerald-300 border-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold border' : c.riskLevel === 'MEDIUM' ? 'bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border-[rgb(230,130,16)]/40 px-2 py-0.5 rounded text-[10px] font-bold border' : 'bg-rose-950 text-rose-300 border-rose-800 px-2 py-0.5 rounded text-[10px] font-bold border'">
+                  {{ c.riskBadge }} {{ c.riskLevel }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-center">
+                <button 
+                  (click)="selectClient(c.clientHash)"
+                  [class.bg-[rgb(230,130,16)]]="selectedClient() === c.clientHash"
+                  [class.text-stone-950]="selectedClient() === c.clientHash"
+                  [class.font-bold]="selectedClient() === c.clientHash"
+                  [class.bg-stone-800]="selectedClient() !== c.clientHash"
+                  [class.text-stone-300]="selectedClient() !== c.clientHash"
+                  class="px-3 py-1 rounded-lg text-[10px] transition border border-stone-700">
+                  {{ selectedClient() === c.clientHash ? 'Inspecting' : 'Inspect' }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Client DNS Activity & Categories Grid -->
+  @if (selectedClient()) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 font-mono text-xs animate-fadeIn">
+      
+      <!-- Client Categories Table -->
+      <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-6 space-y-4 shadow-xl">
+        <div>
+          <h3 class="text-md font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-folder-tree text-[rgb(230,130,16)]"></i> Filtered Categories
+          </h3>
+          <p class="text-xs text-stone-400 mt-0.5">Category query volume and filtering block rate</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+                <th class="py-2 px-3">Category</th>
+                <th class="py-2 px-3 text-right">Queries</th>
+                <th class="py-2 px-3 text-right">Blocked</th>
+                <th class="py-2 px-3 text-right">% Blocked</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-800/60">
+              @if (clientCategoriesData().length === 0) {
+                <tr>
+                  <td colspan="4" class="py-6 text-center text-stone-500">No category traffic recorded.</td>
+                </tr>
+              }
+              @for (cat of clientCategoriesData(); track cat.category) {
+                <tr class="hover:bg-stone-800/40">
+                  <td class="py-2.5 px-3 font-bold text-white">{{ cat.category }}</td>
+                  <td class="py-2.5 px-3 text-right text-stone-300">{{ cat.queries | number }}</td>
+                  <td class="py-2.5 px-3 text-right text-rose-400 font-semibold">{{ cat.blocked | number }}</td>
+                  <td class="py-2.5 px-3 text-right text-[rgb(230,130,16)] font-bold">{{ cat.pctBlocked }}%</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Client Top Domains Table -->
+      <div class="bg-stone-900/60 border border-stone-800 rounded-2xl p-6 space-y-4 shadow-xl">
+        <div>
+          <h3 class="text-md font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-list-ol text-[rgb(230,130,16)]"></i> Top Requested Domains
+          </h3>
+          <p class="text-xs text-stone-400 mt-0.5">Top requests for client {{ selectedClient() }}</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse whitespace-nowrap">
+            <thead>
+              <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+                <th class="py-2 px-3 text-center">Rank</th>
+                <th class="py-2 px-3">Domain</th>
+                <th class="py-2 px-3 text-right">Queries</th>
+                <th class="py-2 px-3 text-right">Blocked</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-800/60">
+              @if (clientTopDomainsData().length === 0) {
+                <tr>
+                  <td colspan="4" class="py-6 text-center text-stone-500">No domain requests recorded.</td>
+                </tr>
+              }
+              @for (d of clientTopDomainsData(); track d.rank) {
+                <tr class="hover:bg-stone-800/40">
+                  <td class="py-2.5 px-3 text-center text-[rgb(230,130,16)] font-bold">#{{ d.rank }}</td>
+                  <td class="py-2.5 px-3 text-white font-semibold">{{ d.domain }}</td>
+                  <td class="py-2.5 px-3 text-right text-stone-300">{{ d.queries | number }}</td>
+                  <td class="py-2.5 px-3 text-right text-rose-400 font-bold">{{ d.blocked | number }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  }
+
+</div>

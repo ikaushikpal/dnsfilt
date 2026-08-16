@@ -1,0 +1,32 @@
+<div class="min-h-screen bg-[#090c10] text-stone-200 font-sans selection:bg-[rgb(230,130,16)] selection:text-stone-950 flex flex-col w-full overflow-x-hidden">
+  
+  <!-- Global Toast Notification -->
+  <app-toast [message]="toastMessage"></app-toast>
+
+  <!-- 100vw Full-Width Top Navigation Bar -->
+  <app-header 
+    [activeTab]="activeTab"
+    [currentUser]="currentUser"
+    [role]="userRole"
+    (tabChange)="onTabChange($event)"
+    (openLogin)="navigateToLogin()"
+    (onLogout)="onLogout()">
+  </app-header>
+
+  <!-- Main Content Container (Full Width for 100vw sections) -->
+  <main class="flex-1 w-full">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Universal Copyright Footer on All Pages -->
+  <footer class="w-full border-t border-stone-800/80 bg-stone-950 py-6 mt-16 text-center font-mono text-xs text-stone-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <img src="/logo.png" alt="DNSFilt" class="h-5 w-auto">
+        <span class="text-stone-300 font-bold">DNSFilt Security Engine</span>
+      </div>
+      <p>&copy; 2026 DNSFilt. All rights reserved.</p>
+    </div>
+  </footer>
+
+</div>

@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'com.dnsfilt'
+version = '1.0-SNAPSHOT'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'com.google.protobuf:protobuf-java:4.26.1'
+    implementation 'com.github.luben:zstd-jni:1.5.5-1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Oracle Database 23ai / 26ai Full Autonomous Production Suite (includes JDBC + Wallet Security PKI)
+    implementation 'com.oracle.database.jdbc:ojdbc11-production:23.5.0.24.07'
+
+    // Fallback drivers
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:4.26.1'
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

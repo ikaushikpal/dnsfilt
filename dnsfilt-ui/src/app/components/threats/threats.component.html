@@ -1,0 +1,147 @@
+<div class="space-y-8 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
+  
+  <div class="flex justify-between items-center">
+    <div>
+      <h2 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-shield-virus text-rose-400"></i> Security & Threat Intelligence
+      </h2>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Real-time malware, phishing, and threat domain mitigation logs</p>
+    </div>
+  </div>
+
+  <!-- Security KPI Cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Malware Blocked</p>
+      <h3 class="text-3xl font-mono font-bold text-rose-400 mt-1">{{ malwareCount() | number }}</h3>
+      <span class="text-[10px] text-rose-400 font-mono flex items-center gap-1 mt-1">
+        <i class="fa-solid fa-shield-cat"></i> High Severity
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Phishing Blocked</p>
+      <h3 class="text-3xl font-mono font-bold text-[rgb(230,130,16)] mt-1">{{ phishingCount() | number }}</h3>
+      <span class="text-[10px] text-[rgb(230,130,16)] font-mono flex items-center gap-1 mt-1">
+        <i class="fa-solid fa-fish-fins"></i> Zero-day Protection
+      </span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Ad Trackers Blocked</p>
+      <h3 class="text-3xl font-mono font-bold text-indigo-400 mt-1">{{ adsCount() | number }}</h3>
+      <span class="text-[10px] text-stone-500 font-mono mt-1">Telemetry Filtered</span>
+    </div>
+
+    <div class="bg-stone-900/80 border border-stone-800 p-5 rounded-xl space-y-1 shadow-lg">
+      <p class="text-stone-400 text-[11px] font-mono uppercase tracking-wider">Active Clients</p>
+      <h3 class="text-3xl font-mono font-bold text-emerald-400 mt-1">{{ summary().activeClients | number }}</h3>
+      <span class="text-[10px] text-stone-500 font-mono mt-1">Monitored Endpoints</span>
+    </div>
+  </div>
+
+  <!-- Threat Log Table with Search & Pagination Controls -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div>
+        <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-rose-400"></i> Active Security Threat Log
+          <span class="text-xs text-stone-400 font-normal">({{ filteredThreats().length }} threats)</span>
+        </h3>
+        <p class="text-xs text-stone-400 font-mono mt-0.5">Identified threat vectors and mitigation status</p>
+      </div>
+
+      <!-- Search & Page Size Select -->
+      <div class="flex items-center gap-2 w-full sm:w-auto font-mono text-xs">
+        <div class="relative flex-1 sm:w-64">
+          <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-500">
+            <i class="fa-solid fa-search"></i>
+          </span>
+          <input 
+            type="text" 
+            [ngModel]="searchTerm()" 
+            (ngModelChange)="searchTerm.set($event); currentPage.set(1)" 
+            placeholder="Search domain..." 
+            class="w-full bg-stone-950 border border-stone-800 rounded-lg pl-8 pr-3 py-1.5 text-white focus:outline-none focus:border-[rgb(230,130,16)]">
+        </div>
+
+        <select 
+          [ngModel]="pageSize()" 
+          (ngModelChange)="onPageSizeChange($event)"
+          class="bg-stone-950 border border-stone-800 text-stone-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[rgb(230,130,16)]">
+          <option [value]="10">10 / page</option>
+          <option [value]="25">25 / page</option>
+          <option [value]="50">50 / page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4 text-center">Rank</th>
+            <th class="py-2.5 px-4">Domain</th>
+            <th class="py-2.5 px-4">Threat Category</th>
+            <th class="py-2.5 px-4 text-right">Blocked Requests</th>
+            <th class="py-2.5 px-4 text-right">Affected Clients</th>
+            <th class="py-2.5 px-4 text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @if (paginatedThreats().length === 0) {
+            <tr>
+              <td colspan="6" class="py-8 text-center text-stone-500 font-mono">No security threats match the criteria.</td>
+            </tr>
+          }
+          @for (t of paginatedThreats(); track t.domain) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 text-center text-[rgb(230,130,16)] font-bold">#{{ t.rank }}</td>
+              <td class="py-2.5 px-4 text-rose-400 font-bold flex items-center gap-2">
+                <i class="fa-solid fa-bug text-xs"></i> {{ t.domain }}
+              </td>
+              <td class="py-2.5 px-4">
+                <span [class]="t.category === 'MALWARE' ? 'bg-rose-950 text-rose-300 border-rose-800 px-2.5 py-0.5 rounded text-[10px] font-bold border' : t.category === 'PHISHING' ? 'bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border-[rgb(230,130,16)]/40 px-2.5 py-0.5 rounded text-[10px] font-bold border' : 'bg-indigo-950 text-indigo-300 border-indigo-800 px-2.5 py-0.5 rounded text-[10px] font-bold border'">
+                  {{ t.category }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right text-white font-bold">{{ t.blockedRequests | number }}</td>
+              <td class="py-2.5 px-4 text-right text-stone-300">{{ t.clients | number }}</td>
+              <td class="py-2.5 px-4 text-center">
+                <span class="bg-rose-950 text-rose-400 border border-rose-800 text-[10px] px-2 py-0.5 rounded font-bold">SINKHOLED</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    @if (totalPages() > 1) {
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-stone-800 font-mono text-xs text-stone-400">
+        <div>
+          Showing page <strong class="text-white">{{ currentPage() }}</strong> of <strong class="text-white">{{ totalPages() }}</strong>
+        </div>
+
+        <div class="flex items-center gap-1">
+          <button 
+            (click)="onPageChange(currentPage() - 1)" 
+            [disabled]="currentPage() === 1"
+            class="px-3 py-1.5 rounded-lg border border-stone-800 bg-stone-950 hover:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition">
+            <i class="fa-solid fa-chevron-left"></i> Prev
+          </button>
+
+          <span class="px-3 py-1 text-stone-300">{{ currentPage() }} / {{ totalPages() }}</span>
+
+          <button 
+            (click)="onPageChange(currentPage() + 1)" 
+            [disabled]="currentPage() === totalPages()"
+            class="px-3 py-1.5 rounded-lg border border-stone-800 bg-stone-950 hover:bg-stone-800 disabled:opacity-40 disabled:pointer-events-none transition">
+            Next <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
