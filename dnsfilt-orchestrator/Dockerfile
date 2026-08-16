@@ -2,7 +2,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (including docker CLI and curl)
+# Install system dependencies (including docker CLI and curl for health checks)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     docker.io \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY app/ ./app/
 
 EXPOSE 8000
 

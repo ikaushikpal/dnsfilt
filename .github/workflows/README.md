@@ -22,6 +22,7 @@ This directory contains the unified CI/CD pipelines, quality gates, and multi-ar
 | `ikaushikpal/dnsfilt-analytics` | `dnsfilt-analytics` | `linux/amd64`, `linux/arm64` |
 | `ikaushikpal/dnsfilt-admin-backend` | `dnsfilt-admin-backend` (bundles UI) | `linux/amd64`, `linux/arm64` |
 | `ikaushikpal/dnsfilt-render-proxy` | `dnsfilt-render-proxy` | `linux/amd64`, `linux/arm64` |
+| `ikaushikpal/dnsfilt-orchestrator` | `dnsfilt-orchestrator` | `linux/amd64`, `linux/arm64` |
 
 ---
 
