@@ -88,6 +88,9 @@ jobs:
           - service: dnsfilt-render-proxy
             context: dnsfilt-render-proxy
             image: dnsfilt-render-proxy
+          - service: dnsfilt-orchestrator
+            context: dnsfilt-orchestrator
+            image: dnsfilt-orchestrator
 
     steps:
       - name: Checkout
