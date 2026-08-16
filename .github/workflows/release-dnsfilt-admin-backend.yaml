@@ -39,13 +39,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --tags --force
-          PREV_TAG=$(git tag --list 'admin-v*' --sort=-version:refname | sed 's/admin-v//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
-          PREV_TAG=${PREV_TAG:-0.0.0}
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PREV_TAG"
+          git fetch --tags --force || true
+          RAW_TAG=$(git tag --list 'admin-v*' 'v*' --sort=-version:refname | grep -E '^[a-zA-Z_-]*v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          if [ -n "$RAW_TAG" ]; then
+            CLEAN_VER=$(echo "$RAW_TAG" | sed -E 's/^[a-zA-Z_-]*v?//')
+          else
+            CLEAN_VER="0.0.0"
+          fi
+          CLEAN_VER=${CLEAN_VER:-0.0.0}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VER"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
           PATCH=$((PATCH + 1))
           VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed next release version: $VERSION (from previous tag: ${RAW_TAG:-none})"
 
       - name: Create git tag
         shell: bash

@@ -101,33 +101,23 @@ jobs:
           PR_BRANCH: ${{ steps.pr.outputs.pr_branch }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          set -euo pipefail
+          git fetch --tags --force || true
 
-          git fetch --tags --force
-
-          # Find latest resolver semver tag (e.g. resolver-v1.0.0 or resolver-1.0.0 or 1.0.0)
-          PREV_TAG=$(
-            git tag --list 'resolver-v*' \
-              --sort=-version:refname \
-              | sed 's/resolver-v//' \
-              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-              | head -n 1
-          )
-
-          if [ -z "$PREV_TAG" ]; then
-            PREV_TAG=$(
-              git tag --list \
-                --sort=-version:refname \
-                | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-                | head -n 1
-            )
+          # Find latest resolver semver tag (e.g. resolver-v1.0.0 or v1.0.0 or 0.0.0)
+          RAW_TAG=$(git tag --list 'resolver-v*' 'v*' --sort=-version:refname | grep -E '^[a-zA-Z_-]*v?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          if [ -n "$RAW_TAG" ]; then
+            CLEAN_VER=$(echo "$RAW_TAG" | sed -E 's/^[a-zA-Z_-]*v?//')
+          else
+            CLEAN_VER="0.0.0"
           fi
-
-          PREV_TAG=${PREV_TAG:-0.0.0}
+          CLEAN_VER=${CLEAN_VER:-0.0.0}
 
           SIGNAL=$(printf '%s %s %s' "${PR_TITLE:-}" "${PR_BRANCH:-}" "${COMMIT_MSG:-}" | tr '[:upper:]' '[:lower:]')
 
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$PREV_TAG"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VER"
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
           BUMP="patch"
 
           if [[ "$SIGNAL" == *"feat!"* ]] || [[ "$SIGNAL" == *"breaking"* ]]; then
