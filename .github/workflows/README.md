@@ -29,6 +29,5 @@ This directory contains the unified CI/CD pipelines, quality gates, and multi-ar
 
 On every merge to `main`, exactly **one Git tag** is created (`vX.Y.Z`).
 Docker images are pushed to Docker Hub with tags:
-- `latest`
-- `<version>` (e.g. `0.0.4`)
-- `v<version>` (e.g. `v0.0.4`)
+- `latest` (tracks the most recent build)
+- `v<version>` (immutable version tag matching Git, e.g. `v0.0.4`)

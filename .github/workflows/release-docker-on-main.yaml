@@ -132,7 +132,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}/${{ matrix.image }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}/${{ matrix.image }}:${{ needs.version-and-tag.outputs.version }}
             ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}/${{ matrix.image }}:v${{ needs.version-and-tag.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
