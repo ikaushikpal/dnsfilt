@@ -8,17 +8,13 @@ RUN gradle build --no-daemon -x test
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Ensure certs directory exists and copy default certs
+# Ensure certs directory exists for runtime volume mounts (-v /path/to/certs:/app/certs)
 RUN mkdir -p /app/certs
-COPY certs /app/certs
-
-# Copy environment configuration profiles
-COPY .env* local.env* prod.env* ./
 
 # Copy compiled fat application jar
 COPY --from=builder /app/build/libs/*.jar app.jar
 
-EXPOSE 2053/udp
+EXPOSE 2053/udp 2053/tcp
 
 # Memory flags optimized for 200 MB container footprint (160m Heap + 40m Metaspace)
 ENV JAVA_OPTS="-Xms64m -Xmx160m -XX:MaxMetaspaceSize=40m -XX:+UseG1GC"
