@@ -1,8 +1,8 @@
 # ==============================================================================
 # Workflow Name: Release Docker On Main
-# Purpose: Triggers upon pushes to the 'main' branch, computes the next Semantic
-#          Version tag, creates Git tags, and builds & pushes production Docker images
-#          to Docker Hub with GitHub layer caching.
+# Purpose: Triggers upon pushes to the 'main' branch, computes ONE Semantic
+#          Version tag, creates ONE Git tag, and builds & pushes production multi-arch
+#          Docker images (linux/amd64, linux/arm64) to Docker Hub with layer caching.
 # ==============================================================================
 name: Release Docker On Main
 
@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   version-and-tag:
-    name: Compute Version And Create Tags
+    name: Compute Version And Create Single Release Tag
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
@@ -54,7 +54,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Computed next release version: $VERSION (from previous tag: ${RAW_TAG:-none})"
 
-      - name: Create version tag
+      - name: Create single version tag
         shell: bash
         env:
           VERSION: ${{ steps.bump.outputs.version }}
@@ -67,11 +67,9 @@ jobs:
             git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
             git push origin "$TAG_NAME"
           fi
-          git tag -f latest
-          git push origin latest --force
 
   docker-build-and-push-matrix:
-    name: Build & Push Service Images
+    name: Build & Push Multi-Arch Service Images
     needs: version-and-tag
     runs-on: ubuntu-latest
     strategy:
@@ -113,7 +111,7 @@ jobs:
           cp -r dist/dnsfilt-ui/browser/* ../dnsfilt-admin-backend/src/main/resources/static/
           cp dist/dnsfilt-ui/browser/home/index.html ../dnsfilt-admin-backend/src/main/resources/static/index.html
 
-      - name: Set Up QEMU
+      - name: Set Up QEMU (ARM64 Emulation)
         uses: docker/setup-qemu-action@v3
 
       - name: Set Up Docker Buildx
