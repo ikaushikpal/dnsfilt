@@ -10,9 +10,6 @@ RUN gradle build --no-daemon -x test
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Ensure certs directory exists for runtime volume mounts (-v /path/to/certs:/app/certs)
-RUN mkdir -p /app/certs
-
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 EXPOSE 8080

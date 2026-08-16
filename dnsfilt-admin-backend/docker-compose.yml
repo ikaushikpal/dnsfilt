@@ -5,14 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: dnsfilt-admin-backend
     ports:
-      - "9090:8080"
-    volumes:
-      - ./certs:/app/certs:ro
+      - "${ADMIN_PORT:-9090}:8080"
     env_file:
       - ${ENV_FILE:-.env}
-    extra_hosts:
-      - "kafka-server:host-gateway"
-      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         limits:
