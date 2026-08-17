@@ -53,16 +53,17 @@ tasks.named('test') {
 def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
 def npmCmd = isWindows ? 'npm.cmd' : 'npm'
 def uiDir = file("${projectDir}/../dnsfilt-ui")
+def ngBinary = file("${uiDir}/node_modules/.bin/ng")
 
 tasks.register('cleanStatic', Delete) {
     description = 'Deletes old frontend static files before packaging'
-    onlyIf { uiDir.exists() }
+    onlyIf { uiDir.exists() && ngBinary.exists() }
     delete "${projectDir}/src/main/resources/static"
 }
 
 tasks.register('buildFrontend', Exec) {
     description = 'Builds Angular frontend (npm run build)'
-    onlyIf { uiDir.exists() }
+    onlyIf { uiDir.exists() && ngBinary.exists() }
     dependsOn 'cleanStatic'
     workingDir uiDir
     commandLine npmCmd, 'run', 'build'
@@ -70,7 +71,7 @@ tasks.register('buildFrontend', Exec) {
 
 tasks.register('copyFrontend', Copy) {
     description = 'Copies Angular production build to Spring Boot static resources'
-    onlyIf { uiDir.exists() }
+    onlyIf { uiDir.exists() && ngBinary.exists() }
     dependsOn 'buildFrontend'
     from "${projectDir}/../dnsfilt-ui/dist/dnsfilt-ui/browser"
     into "${projectDir}/src/main/resources/static"
@@ -87,7 +88,7 @@ tasks.register('copyFrontend', Copy) {
     }
 }
 
-// Automatically sync and rebuild frontend on local build when uiDir exists
-if (uiDir.exists()) {
+// Automatically sync and rebuild frontend on local build when uiDir and ng exist
+if (uiDir.exists() && ngBinary.exists()) {
     processResources.dependsOn 'copyFrontend'
 }
