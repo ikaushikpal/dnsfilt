@@ -1,27 +1,29 @@
 package com.dnsfilt.dnsresolver.service;
 
 import com.dnsfilt.dnsresolver.config.AppConfig;
-import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.InetAddress;
 import java.nio.file.Files;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
-import java.util.ArrayList;
-import java.util.List;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
 
 /**
  * KafkaProducerService
  * 
- * Manages Kafka producer instances for 10-minute analytics batch streaming.
- * Implements the Bill Pugh Singleton Pattern.
+ * High-throughput asynchronous batch producer for dnsfilt-resolver.
+ * Serializes DNS analytics events to Kafka for downstream aggregation by dnsfilt-analytics.
  */
 public class KafkaProducerService {
     private static final Logger logger = LoggerFactory.getLogger(KafkaProducerService.class);
@@ -40,6 +42,16 @@ public class KafkaProducerService {
                 return;
             }
 
+            // Verify DNS resolution of bootstrap host before initializing KafkaProducer
+            String primary = bootstrapServers.split(",")[0].trim();
+            String host = primary.contains(":") ? primary.split(":")[0] : primary;
+            try {
+                InetAddress.getByName(host);
+            } catch (Exception ex) {
+                logger.warn("Kafka bootstrap host '{}' is not resolvable via DNS. Kafka logging will remain disabled.", host);
+                return;
+            }
+
             Properties props = new Properties();
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
@@ -49,24 +61,32 @@ public class KafkaProducerService {
             props.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
 
             String securityProtocol = config.getEnvVariable("kafka.security.protocol");
-            String protocol = (securityProtocol != null && !securityProtocol.trim().isEmpty()) ? securityProtocol : "SASL_PLAINTEXT";
-            props.put("security.protocol", protocol);
-
             String saslMechanism = config.getEnvVariable("kafka.sasl.mechanism");
             String saslUsername = config.getEnvVariable("kafka.sasl.username");
             String saslPassword = config.getEnvVariable("kafka.sasl.password");
 
-            String mechanism = (saslMechanism != null && !saslMechanism.trim().isEmpty()) ? saslMechanism : "PLAIN";
-            props.put("sasl.mechanism", mechanism);
+            String protocol;
+            if (securityProtocol != null && !securityProtocol.trim().isEmpty()) {
+                protocol = securityProtocol.trim();
+            } else if (saslUsername != null && !saslUsername.trim().isEmpty()) {
+                protocol = "SASL_PLAINTEXT";
+            } else {
+                protocol = "PLAINTEXT";
+            }
+            props.put("security.protocol", protocol);
 
-            if (saslUsername != null && saslPassword != null && !saslUsername.trim().isEmpty()) {
+            // Configure SASL JAAS authentication only when credentials are provided
+            if (saslUsername != null && saslPassword != null && !saslUsername.trim().isEmpty() && !saslPassword.trim().isEmpty()) {
+                String mechanism = (saslMechanism != null && !saslMechanism.trim().isEmpty()) ? saslMechanism : "PLAIN";
+                props.put("sasl.mechanism", mechanism);
+
                 String jaasConfig = String.format(
                         "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"%s\" password=\"%s\";",
                         saslUsername, saslPassword);
                 props.put("sasl.jaas.config", jaasConfig);
+                props.put("sasl.client.callback.handler.class", Java21SaslCallbackHandler.class.getName());
+                logger.info("Configured Kafka SASL authentication ({}) with Java21SaslCallbackHandler for user: {}", mechanism, saslUsername);
             }
-
-            props.put("sasl.client.callback.handler.class", Java21SaslCallbackHandler.class.getName());
 
             // Only configure SSL truststore if SSL/SASL_SSL is explicitly chosen
             if ("SASL_SSL".equalsIgnoreCase(protocol) || "SSL".equalsIgnoreCase(protocol)) {
@@ -108,72 +128,52 @@ public class KafkaProducerService {
     }
 
     public boolean isEnabled() {
-        return isEnabled;
-    }
-
-    private static File buildJksTruststore(File pemFile) throws Exception {
-        List<Certificate> certs = new ArrayList<>();
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        String content = new String(Files.readAllBytes(pemFile.toPath()), StandardCharsets.UTF_8);
-        String[] blocks = content.split("(?<=-----END CERTIFICATE-----)");
-        for (String block : blocks) {
-            block = block.trim();
-            if (!block.isEmpty() && block.contains("BEGIN CERTIFICATE")) {
-                certs.add(cf.generateCertificate(new ByteArrayInputStream(block.getBytes(StandardCharsets.UTF_8))));
-            }
-        }
-
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-        ks.load(null, "".toCharArray());
-        for (int i = 0; i < certs.size(); i++) {
-            ks.setCertificateEntry("cert-" + i, certs.get(i));
-        }
-
-        File tempJks = File.createTempFile("kafka-truststore-", ".jks");
-        tempJks.deleteOnExit();
-        try (FileOutputStream fos = new FileOutputStream(tempJks)) {
-            ks.store(fos, "".toCharArray());
-        }
-        return tempJks;
-    }
-
-    private static File resolveCertFile(String caCertPath) {
-        if (caCertPath == null || caCertPath.trim().isEmpty()) {
-            caCertPath = "certs/ca.pem";
-        }
-        String[] candidatePaths = {
-            caCertPath,
-            new File(caCertPath).getAbsolutePath(),
-            new File("dnsfilt-resolver/" + caCertPath).getAbsolutePath(),
-            "/app/" + caCertPath,
-            "/app/certs/ca.pem"
-        };
-        for (String path : candidatePaths) {
-            File f = new File(path);
-            if (f.exists() && f.isFile() && f.length() > 0) {
-                return f;
-            }
-        }
-        return null;
-    }
-
-    public void sendRawAnalyticsBatch(String topic, byte[] compressedPayload) {
-        if (!isEnabled || byteProducer == null) return;
-        ProducerRecord<String, byte[]> record = new ProducerRecord<>(topic, compressedPayload);
-        byteProducer.send(record, (metadata, exception) -> {
-            if (exception != null) {
-                logger.error("Failed to send 10-min analytics batch to Kafka: {}", exception.getMessage());
-            } else {
-                logger.debug("Sent 10-min analytics batch to topic: {}, offset: {}", metadata.topic(), metadata.offset());
-            }
-        });
+        return isEnabled && byteProducer != null;
     }
 
     public void close() {
         if (byteProducer != null) {
-            byteProducer.flush();
-            byteProducer.close();
-            logger.info("KafkaProducer closed.");
+            try {
+                byteProducer.flush();
+                byteProducer.close();
+                logger.info("KafkaProducerService closed successfully.");
+            } catch (Exception e) {
+                logger.warn("Error closing KafkaProducer: {}", e.getMessage());
+            }
         }
+    }
+
+    private File resolveCertFile(String configuredPath) {
+        if (configuredPath != null && !configuredPath.trim().isEmpty()) {
+            File f = new File(configuredPath.trim());
+            if (f.exists()) return f;
+        }
+        File standardFile = new File("certs/ca.pem");
+        if (standardFile.exists()) return standardFile;
+
+        return null;
+    }
+
+    private File buildJksTruststore(File pemFile) throws Exception {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(null, null);
+
+        try (InputStream in = new ByteArrayInputStream(Files.readAllBytes(pemFile.toPath()))) {
+            int index = 0;
+            while (in.available() > 0) {
+                X509Certificate cert = (X509Certificate) cf.generateCertificate(in);
+                if (cert != null) {
+                    ks.setCertificateEntry("ca-" + index++, cert);
+                }
+            }
+        }
+
+        File tempJks = File.createTempFile("kafka-truststore-", ".jks");
+        tempJks.deleteOnExit();
+        try (FileOutputStream out = new FileOutputStream(tempJks)) {
+            ks.store(out, "".toCharArray());
+        }
+        return tempJks;
     }
 }

@@ -5,7 +5,16 @@ services:
       dockerfile: Dockerfile
     container_name: dnsfilt-admin-backend
     ports:
-      - "${ADMIN_PORT:-9090}:8080"
+      - "${ADMIN_PORT:-8080}:8080"
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+      - "host.containers.internal:host-gateway"
+    volumes:
+      - ${LOG_DIR_LOCAL:-./logs}:/app/logs
+    environment:
+      - LOG_DIR=/app/logs
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-14}
     env_file:
       - ${ENV_FILE:-.env}
     deploy:

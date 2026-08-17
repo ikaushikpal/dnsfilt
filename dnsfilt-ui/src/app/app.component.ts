@@ -1,5 +1,6 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, signal } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './services/auth.service';
@@ -13,18 +14,20 @@ import { ToastComponent } from './components/toast/toast.component';
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterOutlet,
     HeaderComponent,
     ToastComponent
   ],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styles: []
 })
 export class AppComponent implements OnInit {
   title = 'dnsfilt-ui';
 
   // Active Navigation tab
   activeTab: NavTab = 'home';
+  sidebarOpen: boolean = false;
 
   // Toast notification state
   toastMessage: string | null = null;
@@ -34,6 +37,16 @@ export class AppComponent implements OnInit {
   currentUser: string | null = null;
   userRole: string | null = null;
 
+  // Change Password Modal State
+  showChangePasswordModal = signal(false);
+  oldPassword = signal('');
+  newPassword = signal('');
+  showOldPassword = signal(false);
+  showNewPassword = signal(false);
+  changePasswordLoading = signal(false);
+  changePasswordError = signal<string | null>(null);
+  changePasswordSuccess = signal<string | null>(null);
+
   constructor(
     public authService: AuthService,
     private router: Router,
@@ -41,6 +54,11 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // If desktop, default sidebar to open
+    if (isPlatformBrowser(this.platformId) && window.innerWidth >= 1024) {
+      this.sidebarOpen = true;
+    }
+
     // Sync current active tab with router URL changes
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
@@ -50,6 +68,7 @@ export class AppComponent implements OnInit {
       else if (url.includes('/dashboard/threats') || url === '/threats') this.activeTab = 'threats';
       else if (url.includes('/dashboard/resolvers') || url === '/resolvers') this.activeTab = 'resolvers';
       else if (url.includes('/dashboard/rules') || url.includes('/dashboard/admin') || url === '/admin') this.activeTab = 'admin';
+      else if (url.includes('/dashboard/users') || url === '/users') this.activeTab = 'users';
       else if (url.includes('/dashboard')) this.activeTab = 'dashboard';
       else if (url.includes('/home')) this.activeTab = 'home';
       else if (url.includes('/learn')) this.activeTab = 'learn';
@@ -64,7 +83,27 @@ export class AppComponent implements OnInit {
     });
   }
 
+  isDashboardRoute(): boolean {
+    return this.activeTab === 'dashboard' || 
+           this.activeTab === 'clients' || 
+           this.activeTab === 'threats' || 
+           this.activeTab === 'resolvers' || 
+           this.activeTab === 'admin' || 
+           this.activeTab === 'users';
+  }
+
+  toggleSidebar(): void {
+    this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  closeSidebar(): void {
+    if (isPlatformBrowser(this.platformId) && window.innerWidth < 1024) {
+      this.sidebarOpen = false;
+    }
+  }
+
   onTabChange(tab: NavTab): void {
+    this.closeSidebar();
     if (tab === 'home') this.router.navigate(['/home']);
     else if (tab === 'dashboard') this.router.navigate(['/dashboard']);
     else if (tab === 'clients') this.router.navigate(['/dashboard/clients']);
@@ -73,6 +112,7 @@ export class AppComponent implements OnInit {
     else if (tab === 'toys') this.router.navigate(['/services']);
     else if (tab === 'learn') this.router.navigate(['/learn']);
     else if (tab === 'contact') this.router.navigate(['/contact']);
+    else if (tab === 'users') this.router.navigate(['/dashboard/users']);
     else if (tab === 'admin') {
       if (!this.currentUser) {
         this.router.navigate(['/login']);
@@ -97,5 +137,53 @@ export class AppComponent implements OnInit {
     this.authService.logout();
     this.showToast('Logged out');
     this.router.navigate(['/home']);
+  }
+
+  openChangePasswordModal(): void {
+    this.oldPassword.set('');
+    this.newPassword.set('');
+    this.changePasswordError.set(null);
+    this.changePasswordSuccess.set(null);
+    this.showChangePasswordModal.set(true);
+  }
+
+  closeChangePasswordModal(): void {
+    this.showChangePasswordModal.set(false);
+    this.changePasswordError.set(null);
+    this.changePasswordSuccess.set(null);
+  }
+
+  submitChangePassword(): void {
+    const oldP = this.oldPassword().trim();
+    const newP = this.newPassword().trim();
+
+    if (!oldP || !newP) {
+      this.changePasswordError.set('Please enter both current and new passwords.');
+      return;
+    }
+
+    if (newP.length < 4) {
+      this.changePasswordError.set('New password must be at least 4 characters.');
+      return;
+    }
+
+    this.changePasswordLoading.set(true);
+    this.changePasswordError.set(null);
+    this.changePasswordSuccess.set(null);
+
+    this.authService.changePassword({ oldPassword: oldP, newPassword: newP }).subscribe({
+      next: () => {
+        this.changePasswordLoading.set(false);
+        this.changePasswordSuccess.set('Password updated successfully!');
+        setTimeout(() => {
+          this.closeChangePasswordModal();
+          this.showToast('Password changed successfully');
+        }, 1500);
+      },
+      error: (err) => {
+        this.changePasswordLoading.set(false);
+        this.changePasswordError.set(err?.error?.error || 'Failed to update password. Please check your current password.');
+      }
+    });
   }
 }
