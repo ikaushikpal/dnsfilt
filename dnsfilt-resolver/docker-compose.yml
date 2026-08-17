@@ -7,6 +7,10 @@ services:
     ports:
       - "${RESOLVER_PORT:-2053}:2053/udp"
       - "${RESOLVER_PORT:-2053}:2053/tcp"
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+      - "host.containers.internal:host-gateway"
     env_file:
       - ${ENV_FILE:-.env}
     deploy:

@@ -15,4 +15,16 @@ redis:
   url: ${REDIS_URL:redis://localhost:6379}
 
 orchestrator:
-  url: ${ORCHESTRATOR_URL:http://dnsfilt-orchestrator:8000/internal/reconcile}
+  url: ${ORCHESTRATOR_URL:http://127.0.0.1:9095/internal/reconcile}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_DIR:./logs}/dnsfilt-admin-backend.log
+  logback:
+    rollingpolicy:
+      file-name-pattern: ${LOG_DIR:./logs}/dnsfilt-admin-backend-%d{yyyy-MM-dd}.log.gz
+      max-history: ${LOG_RETENTION_DAYS:14}
+      total-size-cap: 1GB

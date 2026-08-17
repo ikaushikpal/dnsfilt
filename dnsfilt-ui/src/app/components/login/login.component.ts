@@ -9,11 +9,12 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styles: []
 })
 export class LoginComponent {
   username = signal('');
   password = signal('');
+  showPassword = signal(false);
   loading = signal(false);
   error = signal<string | null>(null);
 
@@ -22,6 +23,10 @@ export class LoginComponent {
     private router: Router,
     private route: ActivatedRoute
   ) {}
+
+  togglePassword(): void {
+    this.showPassword.update(v => !v);
+  }
 
   onSubmit(): void {
     const u = this.username().trim();

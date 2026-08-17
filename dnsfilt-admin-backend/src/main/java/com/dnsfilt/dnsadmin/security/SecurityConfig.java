@@ -27,9 +27,9 @@ import java.util.List;
  * Access Policy Matrix:
  * - Public UI: All static files (.js, .css, .ico, .png, .jpg, .svg, index.html) & SPA routes.
  * - Public API: /api/auth/**, /actuator/health
- * - ROLE_ADMIN: Full access including /api/users/** and /api/v1/resolver/** scaling.
- * - ROLE_OPERATOR: Can view analytics, plus create/delete /api/rules/** and /api/v1/domains/**.
- * - ROLE_VIEWER: Read-only access to /api/v1/analytics/**, /api/rules (GET), /api/v1/domains (GET), /api/v1/resolver/config (GET).
+ * - ROLE_SUPER_ADMIN & ROLE_ADMIN: Access to user management and cluster infrastructure.
+ * - ROLE_OPERATOR: Manage domain rules and records.
+ * - ROLE_VIEWER: Read-only access to metrics and telemetry.
  */
 @Configuration
 @EnableWebSecurity
@@ -89,22 +89,25 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
 
-                // 3. User management & Resolver cluster scaling (ADMIN only)
-                .requestMatchers("/api/users/**").hasAuthority("ROLE_ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/v1/resolver/**").hasAuthority("ROLE_ADMIN")
+                // 3. Self Account Management (Authenticated)
+                .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
 
-                // 4. Rule & Domain mutations (ADMIN & OPERATOR)
-                .requestMatchers(HttpMethod.POST, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR")
-                .requestMatchers(HttpMethod.PUT, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR")
+                // 4. User management & Resolver cluster scaling (SUPER_ADMIN & ADMIN)
+                .requestMatchers("/api/users/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/resolver/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
 
-                // 5. Analytics & Read-only Table inspections (ADMIN, OPERATOR & VIEWER)
-                .requestMatchers(HttpMethod.GET, "/api/v1/analytics/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
-                .requestMatchers(HttpMethod.GET, "/api/rules/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
-                .requestMatchers(HttpMethod.GET, "/api/v1/domains/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
-                .requestMatchers(HttpMethod.GET, "/api/v1/resolver/config").hasAnyAuthority("ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
+                // 5. Rule & Domain mutations (SUPER_ADMIN, ADMIN & OPERATOR)
+                .requestMatchers(HttpMethod.POST, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR")
+                .requestMatchers(HttpMethod.PUT, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/rules/**", "/api/v1/domains/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR")
 
-                // 6. All other API endpoints require authentication
+                // 6. Analytics & Read-only inspections
+                .requestMatchers(HttpMethod.GET, "/api/v1/analytics/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
+                .requestMatchers(HttpMethod.GET, "/api/rules/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
+                .requestMatchers(HttpMethod.GET, "/api/v1/domains/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
+                .requestMatchers(HttpMethod.GET, "/api/v1/resolver/config").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
+
+                // 7. All other API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             );

@@ -6,6 +6,15 @@ services:
     container_name: dnsfilt-analytics
     ports:
       - "${ANALYTICS_PORT:-8081}:8081"
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+      - "host.containers.internal:host-gateway"
+    volumes:
+      - ${LOG_DIR_LOCAL:-./logs}:/app/logs
+    environment:
+      - LOG_DIR=/app/logs
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-14}
     env_file:
       - ${ENV_FILE:-.env}
     deploy:

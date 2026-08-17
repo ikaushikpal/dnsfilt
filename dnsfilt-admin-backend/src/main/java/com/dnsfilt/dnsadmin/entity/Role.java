@@ -4,20 +4,9 @@ package com.dnsfilt.dnsadmin.entity;
  * Role
  * 
  * Defines enterprise Role-Based Access Control (RBAC) user privileges for DNSFilt:
- * 
- * 1. ROLE_ADMIN:
- *    - Full administrative control.
- *    - Manage user accounts, password resets, resolver cluster scaling, and domain rules.
- * 
- * 2. ROLE_OPERATOR:
- *    - Day-to-day DNS operational management.
- *    - Create, modify, and delete domain block rules and custom DNS records.
- *    - Cannot manage users or modify resolver cluster infrastructure.
- * 
- * 3. ROLE_VIEWER:
- *    - Read-only dashboard and analytics auditor.
- *    - Can inspect real-time query metrics, 24h traffic charts, security categories, and top clients.
- *    - Blocked from adding, editing, or deleting rules, records, or users.
+ * 1. ROLE_ADMIN: Full administrative control.
+ * 2. ROLE_OPERATOR: DNS rules and telemetry operations.
+ * 3. ROLE_VIEWER: Read-only access.
  */
 public enum Role {
     ROLE_ADMIN,

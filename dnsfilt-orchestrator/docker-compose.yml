@@ -9,11 +9,18 @@ services:
     restart: unless-stopped
     ports:
       - "${ORCHESTRATOR_PORT:-8000}:8000"
+    extra_hosts:
+      - "kafka-server:host-gateway"
+      - "host.docker.internal:host-gateway"
+      - "host.containers.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HAPROXY_LOCAL_CONFIG:-../haproxy/haproxy.cfg}:${HAPROXY_CONFIG_PATH:-/etc/haproxy/haproxy.cfg}
       - ./data:/app/data
+      - ${LOG_DIR_LOCAL:-./logs}:/app/logs
+      - ${RESOLVER_ENV_LOCAL:-../dnsfilt-resolver/.env}:/app/resolver.env:ro
+    environment:
+      - LOG_DIR=/app/logs
+      - LOG_RETENTION_DAYS=${LOG_RETENTION_DAYS:-14}
     env_file:
       - ${ENV_FILE:-.env}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"

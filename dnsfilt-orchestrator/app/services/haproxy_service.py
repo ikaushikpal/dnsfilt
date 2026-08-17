@@ -1,6 +1,5 @@
 import os
 import logging
-import subprocess
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -63,7 +62,7 @@ backend dns_tcp_backend
         return cfg_content
 
     def update_and_reload(self, active_resolvers: list) -> bool:
-        """Writes updated config and triggers HAProxy reload."""
+        """Writes updated config and triggers HAProxy reload via Docker SDK / Socket."""
         try:
             content = self.generate_config(active_resolvers)
             
@@ -75,16 +74,20 @@ backend dns_tcp_backend
             
             logger.info(f"Updated HAProxy config at {self.config_path} with {len(active_resolvers)} active backends.")
             
-            # Try reloading HAProxy container if running
+            # Trigger graceful reload on HAProxy container via Docker Python SDK
             try:
-                subprocess.run(
-                    ["docker", "exec", settings.HAPROXY_CONTAINER_NAME, "haproxy", "-sf", "1"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    timeout=5
-                )
+                from app.services.docker_service import docker_service
+                if docker_service.client:
+                    try:
+                        container = docker_service.client.containers.get(settings.HAPROXY_CONTAINER_NAME)
+                        if container and container.status == "running":
+                            # Send SIGUSR2 for zero-downtime graceful config reload
+                            container.kill(signal="SIGUSR2")
+                            logger.info(f"Sent graceful SIGUSR2 reload signal to HAProxy container '{settings.HAPROXY_CONTAINER_NAME}'")
+                    except Exception as ce:
+                        logger.debug(f"HAProxy container not running or not found: {ce}")
             except Exception as ex:
-                logger.info(f"HAProxy daemon reload signal completed (or container pending): {ex}")
+                logger.debug(f"HAProxy daemon reload signal via Docker API: {ex}")
                 
             return True
         except Exception as e:

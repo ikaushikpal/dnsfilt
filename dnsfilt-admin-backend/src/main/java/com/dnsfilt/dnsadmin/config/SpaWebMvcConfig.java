@@ -19,7 +19,7 @@ import java.io.IOException;
  * 1. Physical Assets (.js, .css, .ico, .png, .svg, .jpg, prerendered html): Served directly with appropriate caching.
  * 2. API Routes (/api/**, /actuator/**): Passed straight through to @RestController without interception.
  * 3. Client-Side SPA Routes (/dashboard, /rules, /clients, /resolvers, /threats, /login):
- *    Transparently forwarded to 'classpath:/static/index.html' so browser refreshes load smoothly.
+ *    Transparently forwarded to 'classpath:/static/index.html' (or index.csr.html fallback) so browser refreshes load smoothly.
  */
 @Configuration
 public class SpaWebMvcConfig implements WebMvcConfigurer {
@@ -40,8 +40,22 @@ public class SpaWebMvcConfig implements WebMvcConfigurer {
                         if (resourcePath.startsWith("api/") || resourcePath.startsWith("api") || resourcePath.startsWith("actuator/")) {
                             return null;
                         }
-                        // Forward all client-side SPA route navigations to index.html
-                        return new ClassPathResource("/static/index.html");
+
+                        // Forward client-side SPA route navigations to index.html, index.csr.html, or home/index.html
+                        Resource index = new ClassPathResource("/static/index.html");
+                        if (index.exists() && index.isReadable()) {
+                            return index;
+                        }
+                        Resource csr = new ClassPathResource("/static/index.csr.html");
+                        if (csr.exists() && csr.isReadable()) {
+                            return csr;
+                        }
+                        Resource home = new ClassPathResource("/static/home/index.html");
+                        if (home.exists() && home.isReadable()) {
+                            return home;
+                        }
+
+                        return null;
                     }
                 });
     }

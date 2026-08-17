@@ -56,7 +56,11 @@ public class BatchConsumerService {
      * Consumes Zstd-compressed binary Protobuf batches from the analytics topic.
      * Annotated with @Transactional to guarantee all database updates succeed or roll back atomically.
      */
-    @KafkaListener(topics = "${kafka.topic:dns.analytics.10min}", groupId = "dnsfilt-analytics-rollup-group")
+    @KafkaListener(
+        topics = "${kafka.topic:${KAFKA_TOPIC:dns.analytics.10min}}", 
+        groupId = "dnsfilt-analytics-rollup-group",
+        containerFactory = "kafkaListenerContainerFactory"
+    )
     @Transactional
     public void consume10MinBatch(byte[] compressedMessage) {
         try {

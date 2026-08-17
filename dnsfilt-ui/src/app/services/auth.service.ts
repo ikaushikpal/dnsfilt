@@ -23,16 +23,18 @@ export class AuthService {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     if (isPlatformBrowser(this.platformId)) {
-      // If running through Angular dev server (port 4200), target backend on 9090
       if (window.location.port === '4200') {
         this.apiBase = 'http://localhost:9090/api/auth';
       } else {
         this.apiBase = `${window.location.origin}/api/auth`;
       }
 
+      const token = localStorage.getItem('accessToken');
       const username = localStorage.getItem('username');
-      if (username) {
+      if (token && username) {
         this.currentUserSubject.next(username);
+      } else {
+        this.currentUserSubject.next(null);
       }
     } else {
       this.apiBase = 'http://localhost:9090/api/auth';
@@ -53,6 +55,14 @@ export class AuthService {
     );
   }
 
+  changePassword(data: { oldPassword: string; newPassword: string }): Observable<any> {
+    const token = this.getToken();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+    return this.http.post(`${this.apiBase}/change-password`, data, { headers });
+  }
+
   logout(): void {
     const refreshToken = this.getRefreshToken();
     const token = this.getToken();
@@ -70,6 +80,14 @@ export class AuthService {
       localStorage.clear();
       this.currentUserSubject.next(null);
     }
+  }
+
+  deleteSelfAccount(): Observable<any> {
+    let url = '/api/users/me';
+    if (isPlatformBrowser(this.platformId) && window.location.port === '4200') {
+      url = 'http://localhost:9090/api/users/me';
+    }
+    return this.http.delete(url);
   }
 
   getToken(): string | null {

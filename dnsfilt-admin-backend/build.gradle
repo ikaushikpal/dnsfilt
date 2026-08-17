@@ -45,3 +45,50 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// ==============================================================================
+// AUTOMATED FRONTEND BUILD & BUNDLING TASKS (LOCAL DEVELOPMENT)
+// ==============================================================================
+
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+def npmCmd = isWindows ? 'npm.cmd' : 'npm'
+def uiDir = file("${projectDir}/../dnsfilt-ui")
+def ngBinary = file("${uiDir}/node_modules/.bin/ng")
+
+tasks.register('cleanStatic', Delete) {
+    description = 'Deletes old frontend static files before packaging'
+    onlyIf { uiDir.exists() && ngBinary.exists() }
+    delete "${projectDir}/src/main/resources/static"
+}
+
+tasks.register('buildFrontend', Exec) {
+    description = 'Builds Angular frontend (npm run build)'
+    onlyIf { uiDir.exists() && ngBinary.exists() }
+    dependsOn 'cleanStatic'
+    workingDir uiDir
+    commandLine npmCmd, 'run', 'build'
+}
+
+tasks.register('copyFrontend', Copy) {
+    description = 'Copies Angular production build to Spring Boot static resources'
+    onlyIf { uiDir.exists() && ngBinary.exists() }
+    dependsOn 'buildFrontend'
+    from "${projectDir}/../dnsfilt-ui/dist/dnsfilt-ui/browser"
+    into "${projectDir}/src/main/resources/static"
+
+    doLast {
+        def staticDir = file("${projectDir}/src/main/resources/static")
+        def csrFile = file("${staticDir}/index.csr.html")
+        def indexFile = file("${staticDir}/index.html")
+        if (csrFile.exists() && (!indexFile.exists() || indexFile.length() == 0)) {
+            indexFile.text = csrFile.text
+        } else if (file("${staticDir}/home/index.html").exists() && !indexFile.exists()) {
+            indexFile.text = file("${staticDir}/home/index.html").text
+        }
+    }
+}
+
+// Automatically sync and rebuild frontend on local build when uiDir and ng exist
+if (uiDir.exists() && ngBinary.exists()) {
+    processResources.dependsOn 'copyFrontend'
+}
