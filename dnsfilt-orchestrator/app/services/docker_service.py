@@ -127,6 +127,15 @@ class DockerService:
             for tag in candidates:
                 success = False
                 for attempt in range(1, MAX_PULL_RETRIES + 1):
+                    # Proactively cleanup any pre-existing container before each spawn attempt
+                    try:
+                        existing_c = self.client.containers.get(container_name)
+                        if existing_c:
+                            logger.info(f"Removing previous container instance '{container_name}' before spawn attempt {attempt}...")
+                            existing_c.remove(force=True)
+                    except Exception:
+                        pass
+
                     try:
                         logger.info(f"Attempting to spawn {container_name} with image '{tag}' on port {port} (attempt {attempt}/{MAX_PULL_RETRIES}, net={settings.DOCKER_NETWORK})...")
                         run_kwargs = {
@@ -139,7 +148,7 @@ class DockerService:
                         if is_host_net:
                             run_kwargs["network_mode"] = "host"
                         else:
-                            run_kwargs["ports"] = {f"{port}/udp": port, f"{port}/tcp": port, "2053/udp": port, "2053/tcp": port}
+                            run_kwargs["ports"] = {f"{port}/udp": port, f"{port}/tcp": port}
                             run_kwargs["network"] = settings.DOCKER_NETWORK
                             run_kwargs["extra_hosts"] = {
                                 "kafka-server": "host-gateway",
