@@ -30,11 +30,12 @@ class ReconcilerService:
         # Automatic fallback candidates for container & Podman / Docker environments
         fallbacks = [
             "http://dnsfilt-admin-backend:8080/api/v1",
-            "http://host.docker.internal:8080/api/v1",
-            "http://host.containers.internal:8080/api/v1",
-            "http://10.0.0.78:8080/api/v1",
             "http://host.docker.internal:9090/api/v1",
             "http://host.containers.internal:9090/api/v1",
+            "http://host.docker.internal:8080/api/v1",
+            "http://host.containers.internal:8080/api/v1",
+            "http://10.0.0.222:9090/api/v1",
+            "http://10.0.0.78:9090/api/v1",
         ]
         for fb in fallbacks:
             if fb not in candidate_urls:
@@ -66,9 +67,10 @@ class ReconcilerService:
         Reconciliation Logic:
         1. Read desired state from Backend API
         2. Read actual state from SQLite
-        3. If desired > actual -> Scale Up
-        4. If actual > desired -> Scale Down
-        5. If image version mismatch -> Rolling Upgrade
+        3. If actual < desired -> Spawn real Docker resolver containers
+        4. If actual > desired -> Stop and remove excess containers
+        5. If image version mismatch -> Perform zero-downtime rolling upgrade
+        6. Refresh HAProxy configuration and signal reload
         """
         db: Session = SessionLocal()
         try:
@@ -78,67 +80,49 @@ class ReconcilerService:
             
             action_log = []
 
-            # Initialize mock default instances if SQLite is empty
-            if actual_count == 0:
-                for port in [2054, 2055, 2056]:
-                    inst = ResolverInstance(
-                        container_id=f"mock-cid-{port}",
-                        container_name=f"dnsfilt-resolver-p{port}",
-                        ip_address="127.0.0.1",
-                        port=port,
-                        version=desired_version,
-                        status="RUNNING"
-                    )
-                    db.add(inst)
-                    actual_resolvers.append(inst)
-                db.commit()
-                actual_count = len(actual_resolvers)
-                action_log.append("Initialized baseline resolver cluster in local registry.")
-
-            # 1. Scale Up Required
-            if desired_count > actual_count:
+            # 1. Scale Up: Spawn real containers if actual < desired
+            if actual_count < desired_count:
                 to_add = desired_count - actual_count
                 action_log.append(f"Scaling UP cluster from {actual_count} to {desired_count} (+{to_add} instances).")
                 for _ in range(to_add):
                     port = self._find_available_port(db)
-                    success, cid_or_err = docker_service.spawn_resolver(port=port, version=desired_version)
-                    if success:
-                        new_inst = ResolverInstance(
-                            container_id=cid_or_err,
-                            container_name=f"dnsfilt-resolver-p{port}",
-                            ip_address="127.0.0.1",
-                            port=port,
-                            version=desired_version,
-                            status="RUNNING"
-                        )
-                        db.add(new_inst)
-                        db.commit()
-                        action_log.append(f"Spawned resolver container on port {port} (ID: {cid_or_err[:12]})")
-                    else:
-                        action_log.append(f"Failed to spawn container on port {port}: {cid_or_err}")
+                    cid, cname, ip = docker_service.create_resolver_container(port=port, version=desired_version)
+                    
+                    new_inst = ResolverInstance(
+                        container_id=cid,
+                        container_name=cname,
+                        ip_address=ip,
+                        port=port,
+                        version=desired_version,
+                        status="RUNNING"
+                    )
+                    db.add(new_inst)
+                    db.commit()
+                    actual_resolvers.append(new_inst)
+                    action_log.append(f"Spawned resolver container {cname} on port {port} (ID: {cid[:12]})")
 
-            # 2. Scale Down Required
+            # 2. Scale Down: Stop and remove excess containers if actual > desired
             elif actual_count > desired_count:
                 to_remove = actual_count - desired_count
                 action_log.append(f"Scaling DOWN cluster from {actual_count} to {desired_count} (-{to_remove} instances).")
                 for _ in range(to_remove):
                     inst_to_kill = actual_resolvers.pop()
-                    success, msg = docker_service.stop_resolver(inst_to_kill.container_name)
+                    docker_service.remove_resolver_container(inst_to_kill.container_id, inst_to_kill.container_name)
                     inst_to_kill.status = "STOPPED"
                     db.commit()
-                    action_log.append(f"Stopped container {inst_to_kill.container_name} on port {inst_to_kill.port} ({msg})")
+                    action_log.append(f"Stopped & removed container {inst_to_kill.container_name} on port {inst_to_kill.port}")
 
             # 3. Rolling Upgrade if version mismatch
             for inst in actual_resolvers:
                 if inst.version != desired_version:
                     action_log.append(f"Rolling upgrade on container {inst.container_name} to version {desired_version}.")
-                    docker_service.stop_resolver(inst.container_name)
-                    success, cid_or_err = docker_service.spawn_resolver(port=inst.port, version=desired_version)
-                    if success:
-                        inst.container_id = cid_or_err
-                        inst.version = desired_version
-                        db.commit()
-                        action_log.append(f"Upgraded container {inst.container_name} (new ID: {cid_or_err[:12]})")
+                    docker_service.remove_resolver_container(inst.container_id, inst.container_name)
+                    cid, cname, ip = docker_service.create_resolver_container(port=inst.port, version=desired_version)
+                    inst.container_id = cid
+                    inst.version = desired_version
+                    inst.ip_address = ip
+                    db.commit()
+                    action_log.append(f"Upgraded container {inst.container_name} (new ID: {cid[:12]})")
 
             # 4. Refresh HAProxy Routing Table with active instances
             active_list = [

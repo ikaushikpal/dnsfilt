@@ -41,7 +41,16 @@ logger = logging.getLogger("dnsfilt-orchestrator")
 logger.info(f"Log handler initialized. Logs will be saved to '{log_file_path}' with {settings.LOG_RETENTION_DAYS} days (2 weeks) retention.")
 
 # Create SQLite database tables if they do not exist
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.warning(f"Initial DB create_all encountered '{e}'. Retrying with /tmp fallback...")
+    try:
+        from sqlalchemy import create_engine
+        fallback_engine = create_engine("sqlite:////tmp/resolvers.db", connect_args={"check_same_thread": False})
+        Base.metadata.create_all(bind=fallback_engine)
+    except Exception as fe:
+        logger.error(f"Fallback DB creation error: {fe}")
 
 app = FastAPI(
     title="DNSFilt Orchestrator Controller",
