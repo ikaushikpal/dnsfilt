@@ -54,7 +54,7 @@ except Exception as e:
 
 app = FastAPI(
     title="DNSFilt Orchestrator Controller",
-    description="Custom lightweight Python orchestrator service for dynamic scaling, zero-downtime rolling upgrades, and HAProxy load distribution.",
+    description="Custom lightweight Python orchestrator service for dynamic scaling, zero-downtime rolling upgrades, and NGINX Stream gateway load distribution.",
     version=settings.VERSION
 )
 

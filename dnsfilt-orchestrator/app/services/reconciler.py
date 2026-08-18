@@ -6,7 +6,7 @@ from app.config import settings
 from app.database import SessionLocal
 from app.models import ResolverInstance, ReconciliationLog
 from app.services.docker_service import docker_service
-from app.services.haproxy_service import haproxy_service
+from app.services.nginx_service import nginx_service
 
 logger = logging.getLogger(__name__)
 
@@ -127,12 +127,12 @@ class ReconcilerService:
                     db.commit()
                     action_log.append(f"Upgraded container {inst.container_name} (new ID: {cid[:12]})")
 
-            # 4. Refresh HAProxy Routing Table with active instances
+            # 4. Refresh NGINX Stream Routing Table with active instances
             active_list = [
                 {"id": r.id, "port": r.port, "ip_address": r.ip_address}
                 for r in self.get_actual_state(db)
             ]
-            haproxy_service.update_and_reload(active_list)
+            nginx_service.update_and_reload(active_list)
 
             # Record Reconciliation History
             recon_entry = ReconciliationLog(
