@@ -85,6 +85,7 @@ jobs:
           - service: dnsfilt-admin-backend
             context: dnsfilt-admin-backend
             image: dnsfilt-admin-backend
+            no_docker_cache: true  # Angular UI bundle must always be rebuilt fresh
           - service: dnsfilt-render-proxy
             context: dnsfilt-render-proxy
             image: dnsfilt-render-proxy
@@ -136,5 +137,7 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}/${{ matrix.image }}:latest
             ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}/${{ matrix.image }}:v${{ needs.version-and-tag.outputs.version }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          # Skip Docker layer cache for services with embedded frontend bundles (e.g. admin-backend)
+          # to guarantee the latest Angular build is always included in the image.
+          cache-from: ${{ !matrix.no_docker_cache && format('type=gha,scope={0}', matrix.service) || '' }}
+          cache-to: ${{ !matrix.no_docker_cache && format('type=gha,mode=max,scope={0}', matrix.service) || '' }}

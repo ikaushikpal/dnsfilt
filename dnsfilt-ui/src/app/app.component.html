@@ -149,8 +149,8 @@
       </aside>
     }
 
-    <!-- Main Content Container -->
-    <main class="flex-1 min-w-0 w-full overflow-x-hidden p-2 sm:p-4 lg:p-6">
+    <!-- Main Content Container: No padding on public pages (home/learn/cli) to allow full-bleed hero images -->
+    <main class="flex-1 min-w-0 w-full overflow-x-hidden" [class.p-2]="isDashboardRoute()" [class.sm:p-4]="isDashboardRoute()" [class.lg:p-6]="isDashboardRoute()">
       <router-outlet></router-outlet>
     </main>
 
