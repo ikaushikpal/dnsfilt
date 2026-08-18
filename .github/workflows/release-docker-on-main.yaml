@@ -112,7 +112,7 @@ jobs:
           npm run build
           mkdir -p ../dnsfilt-admin-backend/src/main/resources/static
           cp -r dist/dnsfilt-ui/browser/* ../dnsfilt-admin-backend/src/main/resources/static/
-          cp dist/dnsfilt-ui/browser/home/index.html ../dnsfilt-admin-backend/src/main/resources/static/index.html
+          cp -f dist/dnsfilt-ui/browser/index.csr.html ../dnsfilt-admin-backend/src/main/resources/static/index.html || cp -f dist/dnsfilt-ui/browser/home/index.html ../dnsfilt-admin-backend/src/main/resources/static/index.html
 
       - name: Set Up QEMU (ARM64 Emulation)
         uses: docker/setup-qemu-action@v3

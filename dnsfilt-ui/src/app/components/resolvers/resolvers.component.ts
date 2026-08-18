@@ -31,11 +31,12 @@ export class ResolversComponent implements OnInit, OnDestroy {
   });
 
   desiredCount = signal<number>(3);
-  desiredVersion = signal<string>('1.0.0');
+  desiredVersion = signal<string>('latest');
 
   updatingCount = signal<boolean>(false);
   updatingVersion = signal<boolean>(false);
   configSuccessMessage = signal<string | null>(null);
+  configErrorMessage = signal<string | null>(null);
 
   resolversData = signal<ResolverNode[]>([]);
   private refreshInterval: any;
@@ -85,29 +86,36 @@ export class ResolversComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.updatingCount.set(false);
+        this.showError('Failed to scale cluster. Admin privileges required.');
       }
     });
   }
 
-  onUpdateVersion(): void {
-    const v = this.desiredVersion().trim();
-    if (!v) return;
+  onUpgradeToLatest(): void {
     this.updatingVersion.set(true);
-    this.apiService.updateResolverVersion(v).subscribe({
+    this.apiService.updateResolverVersion('latest').subscribe({
       next: cfg => {
         this.updatingVersion.set(false);
         this.desiredVersion.set(cfg.desiredVersion);
-        this.showSuccess(`Resolver desired version updated to v${cfg.desiredVersion}.`);
+        this.showSuccess('Triggered zero-downtime rolling upgrade to latest release image.');
       },
       error: () => {
         this.updatingVersion.set(false);
+        this.showError('Failed to trigger upgrade. Ensure you are logged in as Admin.');
       }
     });
   }
 
   private showSuccess(msg: string): void {
     this.configSuccessMessage.set(msg);
-    setTimeout(() => this.configSuccessMessage.set(null), 3500);
+    this.configErrorMessage.set(null);
+    setTimeout(() => this.configSuccessMessage.set(null), 4000);
+  }
+
+  private showError(msg: string): void {
+    this.configErrorMessage.set(msg);
+    this.configSuccessMessage.set(null);
+    setTimeout(() => this.configErrorMessage.set(null), 4000);
   }
 
   private generateResolverNodes(count: number): void {

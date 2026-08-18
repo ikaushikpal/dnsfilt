@@ -3,6 +3,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface SummaryStats {
   totalQueries: number;
@@ -95,14 +96,22 @@ export class ApiService {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     if (isPlatformBrowser(this.platformId)) {
-      // When developing locally on Angular dev server (4200), point to backend port 9090
-      if (window.location.port === '4200') {
-        this.apiBase = 'http://localhost:9090/api';
-      } else {
+      // Priority 1: Check explicit environment apiUrl override
+      if (environment.apiUrl && environment.apiUrl.trim()) {
+        this.apiBase = environment.apiUrl.trim().replace(/\/+$/, '');
+      } 
+      // Priority 2: Check development environment or dev server port 4200
+      else if (!environment.production || window.location.port === '4200') {
+        const port = environment.backendPort || localStorage.getItem('dnsfilt_backend_port') || '9090';
+        this.apiBase = `http://${window.location.hostname}:${port}/api`;
+      } 
+      // Priority 3: Production default (inherits same origin and port serving the frontend)
+      else {
         this.apiBase = `${window.location.origin}/api`;
       }
     } else {
-      this.apiBase = 'http://localhost:9090/api';
+      const port = environment.backendPort || 9090;
+      this.apiBase = `http://localhost:${port}/api`;
     }
   }
 

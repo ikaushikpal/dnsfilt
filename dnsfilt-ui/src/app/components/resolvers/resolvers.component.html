@@ -16,6 +16,13 @@
     </div>
   }
 
+  @if (configErrorMessage()) {
+    <div class="bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-mono p-3.5 rounded-xl flex items-center gap-2 shadow-lg animate-fadeIn">
+      <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+      {{ configErrorMessage() }}
+    </div>
+  }
+
   <!-- Cluster Orchestration & Dynamic Scaling Control Card -->
   <div class="bg-stone-900/80 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl font-mono text-xs">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-800 pb-3">
@@ -52,27 +59,27 @@
         </div>
       </div>
 
-      <!-- Desired Version Upgrade Form -->
+      <!-- Desired Version Upgrade Button -->
       <div class="space-y-2">
-        <label class="text-stone-400 block">Desired Microservice Version:</label>
-        <div class="flex items-center gap-2">
-          <input 
-            type="text" 
-            [ngModel]="desiredVersion()" 
-            (ngModelChange)="desiredVersion.set($event)" 
-            placeholder="e.g. 1.0.0"
-            class="bg-stone-950 border border-stone-800 text-white px-3.5 py-2.5 rounded-lg w-36 focus:outline-none focus:border-[rgb(230,130,16)]">
-
+        <div class="flex items-center justify-between">
+          <label class="text-stone-400 block">Cluster Release Version:</label>
+          <span class="text-[11px] text-stone-400">Current: <span class="text-emerald-400 font-bold font-mono">v{{ desiredVersion() }}</span></span>
+        </div>
+        <div class="flex items-center gap-3 pt-0.5">
           <button 
-            (click)="onUpdateVersion()"
+            (click)="onUpgradeToLatest()"
             [disabled]="updatingVersion()"
-            class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-bold px-4 py-2.5 rounded-lg transition active:scale-95 shadow-md">
+            class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] disabled:opacity-50 text-stone-950 font-bold px-5 py-2.5 rounded-lg transition active:scale-95 shadow-md flex items-center gap-2">
             @if (updatingVersion()) {
               <i class="fa-solid fa-circle-notch fa-spin"></i>
+              <span>Upgrading Cluster...</span>
             } @else {
-              Update Version
+              <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+              <span>Upgrade to Latest</span>
             }
           </button>
+
+          <span class="text-stone-500 text-[11px]">Zero-downtime rolling upgrade</span>
         </div>
       </div>
     </div>
