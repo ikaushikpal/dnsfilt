@@ -85,9 +85,10 @@ public class SecurityConfig {
                     "/admin/**"
                 ).permitAll()
 
-                // 2. Public API Authentication & Health Probes
+                // 2. Public API Authentication & Health Probes & Internal Config Polling
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/resolver/config").permitAll()
 
                 // 3. Self Account Management (Authenticated)
                 .requestMatchers(HttpMethod.DELETE, "/api/users/me").authenticated()
@@ -105,7 +106,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/analytics/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
                 .requestMatchers(HttpMethod.GET, "/api/rules/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
                 .requestMatchers(HttpMethod.GET, "/api/v1/domains/**").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
-                .requestMatchers(HttpMethod.GET, "/api/v1/resolver/config").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_OPERATOR", "ROLE_VIEWER")
 
                 // 7. All other API endpoints require authentication
                 .requestMatchers("/api/**").authenticated()

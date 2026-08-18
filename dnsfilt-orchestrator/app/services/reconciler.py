@@ -44,15 +44,18 @@ class ReconcilerService:
         for base_url in candidate_urls:
             target_url = f"{base_url}/resolver/config"
             try:
-                resp = requests.get(target_url, timeout=2)
+                resp = requests.get(target_url, timeout=3)
                 if resp.status_code == 200:
                     data = resp.json()
                     desired_count = int(data.get("desiredCount", 3))
                     desired_version = str(data.get("desiredVersion", "1.0.0"))
                     self._successful_url = base_url
-                    logger.debug(f"Connected to backend API at {target_url} (desiredCount={desired_count}, desiredVersion={desired_version})")
+                    logger.info(f"Connected to backend API at {target_url} (desiredCount={desired_count}, desiredVersion={desired_version})")
                     return (desired_count, desired_version)
-            except Exception:
+                else:
+                    logger.debug(f"Backend probe at {target_url} returned HTTP {resp.status_code}")
+            except Exception as e:
+                logger.debug(f"Backend probe at {target_url} failed: {e}")
                 continue
 
         logger.info("Admin backend API not currently reachable from container network. Using default cluster state (3 instances, v1.0.0).")
