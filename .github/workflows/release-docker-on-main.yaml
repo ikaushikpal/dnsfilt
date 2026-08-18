@@ -44,15 +44,39 @@ jobs:
           else
             CLEAN_VER="0.0.0"
           fi
-          CLEAN_VER=${CLEAN_VER:-0.0.0}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VER"
           MAJOR=${MAJOR:-0}
           MINOR=${MINOR:-0}
           PATCH=${PATCH:-0}
-          PATCH=$((PATCH + 1))
+
+          # Inspect commit logs since last release tag (or recent 50 commits if initial)
+          if [ -n "$RAW_TAG" ] && git rev-parse "$RAW_TAG" >/dev/null 2>&1; then
+            COMMITS=$(git log "${RAW_TAG}..HEAD" --format="%s%n%b" || git log -n 50 --format="%s%n%b")
+          else
+            COMMITS=$(git log -n 50 --format="%s%n%b")
+          fi
+
+          # Determine bump type based on Conventional Commits:
+          # 1. MAJOR: Any commit with '!' (e.g. feat!:, fix!:, refactor!:) or 'BREAKING CHANGE:' / 'BREAKING-CHANGE:'
+          # 2. MINOR: Any commit starting with 'feat:' or 'feat(...):'
+          # 3. PATCH: Default (fix:, perf:, docs:, refactor:, chore:, etc.)
+          if echo "$COMMITS" | grep -Eq '^[a-zA-Z]+(\([^)]+\))?!:|BREAKING[ -]CHANGE:'; then
+            BUMP="major"
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif echo "$COMMITS" | grep -Eq '^feat(\([^)]+\))?:'; then
+            BUMP="minor"
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            BUMP="patch"
+            PATCH=$((PATCH + 1))
+          fi
+
           VERSION="${MAJOR}.${MINOR}.${PATCH}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Computed next release version: $VERSION (from previous tag: ${RAW_TAG:-none})"
+          echo "Computed $BUMP version bump: $VERSION (from previous tag: ${RAW_TAG:-none})"
 
       - name: Create single version tag
         shell: bash
