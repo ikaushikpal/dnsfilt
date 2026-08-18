@@ -48,19 +48,47 @@ class DockerService:
                     return port
         raise RuntimeError("No free port available in designated resolver port range!")
 
+    def _get_image_tag_candidates(self, version: str) -> list[str]:
+        """
+        Returns an ordered list of image tag candidates to try for a given version.
+        Priority:
+          1. Exact version as provided (e.g. 'v0.0.10' or '1.0.0')
+          2. With 'v' prefix added  (e.g. 'v1.0.0')     ← Docker Hub often uses this
+          3. With 'v' prefix stripped (e.g. '0.0.10')   ← Some registries omit 'v'
+          4. ':latest'                                   ← Final guaranteed fallback
+        """
+        if not version or version == "latest":
+            return [f"{settings.RESOLVER_IMAGE_NAME}:latest"]
+
+        candidates = []
+        exact = f"{settings.RESOLVER_IMAGE_NAME}:{version}"
+        candidates.append(exact)
+
+        # Add v-prefixed variant if not already v-prefixed
+        if not version.startswith("v"):
+            candidates.append(f"{settings.RESOLVER_IMAGE_NAME}:v{version}")
+        else:
+            # Add the stripped variant too
+            candidates.append(f"{settings.RESOLVER_IMAGE_NAME}:{version.lstrip('v')}")
+
+        # Always add :latest as ultimate fallback
+        latest = f"{settings.RESOLVER_IMAGE_NAME}:latest"
+        if latest not in candidates:
+            candidates.append(latest)
+
+        return candidates
+
     def create_resolver_container(self, port: int, version: str) -> tuple[str, str, str]:
         """
         Creates & starts a new resolver container with configured environment.
+        Tries each image tag candidate in priority order, falls back to :latest on 404.
         Returns (container_id, container_name, ip_address)
         """
         container_name = f"dnsfilt-resolver-p{port}"
-        image_tag = f"{settings.RESOLVER_IMAGE_NAME}:{version}" if not version.startswith("v") and not version.startswith("latest") else f"{settings.RESOLVER_IMAGE_NAME}:{version}"
-        # If version is just a SemVer number (e.g. 1.0.0), support both v1.0.0 and latest fallback
-        if not version.startswith("v") and version != "latest":
-            image_tag = f"{settings.RESOLVER_IMAGE_NAME}:v{version}"
+        candidates = self._get_image_tag_candidates(version)
 
         if not self.client:
-            logger.info(f"[Standalone/Mock] Container created: {container_name} on port {port}")
+            logger.info(f"[Standalone/Mock] Container created: {container_name} on port {port} (image: {candidates[0]})")
             return (f"mock-cid-{port}", container_name, "127.0.0.1")
 
         try:
@@ -68,15 +96,35 @@ class DockerService:
             resolver_env["RESOLVER_PORT"] = str(port)
             resolver_env["DNS_PORT"] = str(port)
 
-            container = self.client.containers.run(
-                image=image_tag,
-                name=container_name,
-                detach=True,
-                ports={'2053/udp': port, '2053/tcp': port},
-                network=settings.DOCKER_NETWORK,
-                environment=resolver_env,
-                restart_policy={"Name": "unless-stopped"}
-            )
+            container = None
+            actual_tag = None
+            last_err = None
+
+            for tag in candidates:
+                try:
+                    logger.info(f"Attempting to spawn {container_name} with image '{tag}'...")
+                    container = self.client.containers.run(
+                        image=tag,
+                        name=container_name,
+                        detach=True,
+                        ports={'2053/udp': port, '2053/tcp': port},
+                        network=settings.DOCKER_NETWORK,
+                        environment=resolver_env,
+                        restart_policy={"Name": "unless-stopped"}
+                    )
+                    actual_tag = tag
+                    break  # Successfully spawned
+                except Exception as tag_err:
+                    err_str = str(tag_err)
+                    if "404" in err_str or "manifest unknown" in err_str or "not found" in err_str.lower():
+                        logger.warning(f"Image tag '{tag}' not found (404). Trying next candidate...")
+                        last_err = tag_err
+                        continue
+                    raise  # Non-404 error: re-raise immediately
+
+            if container is None:
+                raise last_err or RuntimeError(f"All image tag candidates exhausted for version '{version}'")
+
             container.reload()
             # Safe IP extraction for both Docker Engine and Podman 5.x
             net = container.attrs.get('NetworkSettings', {})
@@ -89,12 +137,12 @@ class DockerService:
                         break
             ip_address = ip_address or "127.0.0.1"
 
-            logger.info(f"Spawned resolver container {container_name} ({container.id[:12]}) with image {image_tag} on port {port} (IP: {ip_address})")
+            logger.info(f"Spawned resolver container {container_name} ({container.id[:12]}) with image '{actual_tag}' on port {port} (IP: {ip_address})")
             return (container.id[:12], container_name, ip_address)
         except Exception as e:
             logger.error(f"Failed to create Docker container {container_name}: {e}")
-            # Fallback mock for local execution environments without active Docker daemon
             return (f"mock-cid-{port}", container_name, "127.0.0.1")
+
 
     def health_check(self, port: int) -> bool:
         """Performs a UDP / socket ping check on the resolver instance."""
