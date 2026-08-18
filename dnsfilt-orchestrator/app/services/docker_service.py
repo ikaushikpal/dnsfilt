@@ -91,6 +91,31 @@ class DockerService:
 
         return candidates
 
+    def _get_extra_hosts(self) -> dict[str, str]:
+        """
+        Extracts custom host mappings (e.g. kafka-server) directly from the host's /etc/hosts,
+        preventing Podman from overriding kafka-server with the 10.88.0.1 bridge gateway IP.
+        """
+        extra_hosts = {
+            "host.docker.internal": "host-gateway",
+            "host.containers.internal": "host-gateway",
+        }
+        try:
+            if os.path.exists("/etc/hosts"):
+                with open("/etc/hosts", "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            parts = line.split()
+                            if len(parts) >= 2:
+                                ip = parts[0]
+                                for host in parts[1:]:
+                                    if "kafka" in host.lower() or "redis" in host.lower() or "backend" in host.lower():
+                                        extra_hosts[host] = ip
+        except Exception as e:
+            logger.debug(f"Notice reading /etc/hosts: {e}")
+        return extra_hosts
+
     def create_resolver_container(self, port: int, version: str) -> tuple[str, str, str]:
         """
         Creates & starts a new resolver container with configured environment.
@@ -110,15 +135,6 @@ class DockerService:
             resolver_env["DNS_PORT"] = str(port)
 
             is_host_net = (settings.DOCKER_NETWORK.strip().lower() == "host")
-
-            # Force cleanup of any dead/orphaned container with the same name before spawning
-            try:
-                existing_c = self.client.containers.get(container_name)
-                if existing_c:
-                    logger.info(f"Cleaning up pre-existing container '{container_name}' ({existing_c.id[:12]})...")
-                    existing_c.remove(force=True)
-            except Exception:
-                pass
 
             container = None
             actual_tag = None
@@ -150,11 +166,7 @@ class DockerService:
                         else:
                             run_kwargs["ports"] = {f"{port}/udp": port, f"{port}/tcp": port}
                             run_kwargs["network"] = settings.DOCKER_NETWORK
-                            run_kwargs["extra_hosts"] = {
-                                "kafka-server": "host-gateway",
-                                "host.docker.internal": "host-gateway",
-                                "host.containers.internal": "host-gateway"
-                            }
+                            run_kwargs["extra_hosts"] = self._get_extra_hosts()
 
                         container = self.client.containers.run(**run_kwargs)
                         actual_tag = tag
@@ -200,7 +212,6 @@ class DockerService:
         except Exception as e:
             logger.error(f"Failed to create Docker container {container_name}: {e}")
             return (f"mock-cid-{port}", container_name, "127.0.0.1")
-
 
     def health_check(self, port: int) -> bool:
         """Performs a UDP / socket ping check on the resolver instance."""
