@@ -61,6 +61,68 @@ class ReconcilerService:
         logger.info("Admin backend API not currently reachable from container network. Using default cluster state (3 instances, v1.0.0).")
         return (3, "1.0.0")
 
+    def _sync_actual_state_with_docker(self, db: Session):
+        """
+        Synchronizes SQLite database records with real Docker/Podman container states.
+        Marks missing/dead containers as STOPPED so ports can be cleanly reused without constraint errors.
+        """
+        try:
+            if not docker_service.client:
+                return
+
+            # Fetch all live containers from Docker/Podman
+            live_containers = {}
+            for c in docker_service.client.containers.list(all=True):
+                if c.name.startswith("dnsfilt-resolver-p"):
+                    live_containers[c.name] = c
+
+            db_resolvers = db.query(ResolverInstance).all()
+            for r in db_resolvers:
+                c = live_containers.get(r.container_name)
+                if not c or c.status != "running":
+                    if r.status == "RUNNING":
+                        logger.info(f"Marking dead/missing container '{r.container_name}' as STOPPED in database.")
+                        r.status = "STOPPED"
+                else:
+                    if r.status != "RUNNING":
+                        r.status = "RUNNING"
+            db.commit()
+        except Exception as e:
+            logger.debug(f"Docker state sync notice: {e}")
+
+    def _upsert_resolver_instance(self, db: Session, cid: str, cname: str, ip: str, port: int, version: str) -> ResolverInstance:
+        """
+        Inserts or updates a ResolverInstance record cleanly without violating unique constraints.
+        """
+        inst = db.query(ResolverInstance).filter(
+            (ResolverInstance.container_name == cname) | (ResolverInstance.port == port)
+        ).first()
+
+        now = datetime.datetime.utcnow()
+        if inst:
+            inst.container_id = cid
+            inst.container_name = cname
+            inst.ip_address = ip
+            inst.port = port
+            inst.version = version
+            inst.status = "RUNNING"
+            inst.updated_at = now
+        else:
+            inst = ResolverInstance(
+                container_id=cid,
+                container_name=cname,
+                ip_address=ip,
+                port=port,
+                version=version,
+                status="RUNNING",
+                created_at=now,
+                updated_at=now
+            )
+            db.add(inst)
+        
+        db.commit()
+        return inst
+
     def get_actual_state(self, db: Session) -> list[ResolverInstance]:
         """Reads actual state from local SQLite database."""
         return db.query(ResolverInstance).filter(ResolverInstance.status == "RUNNING").all()
@@ -68,15 +130,18 @@ class ReconcilerService:
     def reconcile(self) -> dict:
         """
         Reconciliation Logic:
-        1. Read desired state from Backend API
-        2. Read actual state from SQLite
+        1. Sync SQLite state with live Docker containers
+        2. Read desired state from Backend API
         3. If actual < desired -> Spawn real Docker resolver containers
         4. If actual > desired -> Stop and remove excess containers
         5. If image version mismatch -> Perform zero-downtime rolling upgrade
-        6. Refresh HAProxy configuration and signal reload
+        6. Refresh NGINX Stream configuration and signal reload
         """
         db: Session = SessionLocal()
         try:
+            # 0. Sync SQLite with live Docker state first to clear stale records
+            self._sync_actual_state_with_docker(db)
+
             desired_count, desired_version = self.get_desired_state()
             actual_resolvers = self.get_actual_state(db)
             actual_count = len(actual_resolvers)
@@ -91,16 +156,14 @@ class ReconcilerService:
                     port = self._find_available_port(db)
                     cid, cname, ip = docker_service.create_resolver_container(port=port, version=desired_version)
                     
-                    new_inst = ResolverInstance(
-                        container_id=cid,
-                        container_name=cname,
-                        ip_address=ip,
+                    new_inst = self._upsert_resolver_instance(
+                        db=db,
+                        cid=cid,
+                        cname=cname,
+                        ip=ip,
                         port=port,
-                        version=desired_version,
-                        status="RUNNING"
+                        version=desired_version
                     )
-                    db.add(new_inst)
-                    db.commit()
                     actual_resolvers.append(new_inst)
                     action_log.append(f"Spawned resolver container {cname} on port {port} (ID: {cid[:12]})")
 
@@ -159,7 +222,7 @@ class ReconcilerService:
 
     def _find_available_port(self, db: Session) -> int:
         """Finds next unallocated port in the configured range."""
-        used_ports = [r.port for r in db.query(ResolverInstance).filter(ResolverInstance.status == "RUNNING").all()]
+        used_ports = {r.port for r in db.query(ResolverInstance).filter(ResolverInstance.status == "RUNNING").all()}
         for p in range(settings.RESOLVER_PORT_RANGE_START, settings.RESOLVER_PORT_RANGE_END + 1):
             if p not in used_ports:
                 return p
@@ -167,3 +230,4 @@ class ReconcilerService:
 
 reconciler_service = ReconcilerService()
 reconciler = reconciler_service
+
