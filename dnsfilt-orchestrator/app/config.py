@@ -17,15 +17,16 @@ class Settings(BaseSettings):
     # SQLite local DB path for actual state tracking (saved in ./data for volume persistence)
     SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", "sqlite:///./data/resolvers.db")
     
-    # HAProxy config path
-    HAPROXY_CONFIG_PATH: str = os.getenv("HAPROXY_CONFIG_PATH", "/etc/haproxy/haproxy.cfg")
-    HAPROXY_CONTAINER_NAME: str = os.getenv("HAPROXY_CONTAINER_NAME", "haproxy")
+    # NGINX Stream Gateway & Load Balancer Configuration
+    NGINX_STREAM_CONFIG_PATH: str = os.getenv("NGINX_STREAM_CONFIG_PATH", "/etc/nginx/conf.d/dns_stream.conf")
+    NGINX_CONTAINER_NAME: str = os.getenv("NGINX_CONTAINER_NAME", "nginx")
+    NGINX_BACKEND_HOST: str = os.getenv("NGINX_BACKEND_HOST", "127.0.0.1")
     
     # Docker settings
     RESOLVER_IMAGE_NAME: str = os.getenv("RESOLVER_IMAGE_NAME", "ikaushikpal/dnsfilt-resolver")
     RESOLVER_PORT_RANGE_START: int = int(os.getenv("RESOLVER_PORT_RANGE_START", 2054))
     RESOLVER_PORT_RANGE_END: int = int(os.getenv("RESOLVER_PORT_RANGE_END", 2090))
-    DOCKER_NETWORK: str = os.getenv("DOCKER_NETWORK", "bridge")
+    DOCKER_NETWORK: str = os.getenv("DOCKER_NETWORK", "host")
     
     # Path to environment file to inject into spawned resolver instances
     RESOLVER_ENV_FILE: str = os.getenv("RESOLVER_ENV_FILE", "/app/resolver.env")

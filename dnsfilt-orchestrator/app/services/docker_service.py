@@ -1,10 +1,23 @@
 import os
 import logging
 import socket
+import time
+import random
 import docker
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+MAX_PULL_RETRIES = 3
+INITIAL_BACKOFF_SECONDS = 1.5
+MAX_BACKOFF_SECONDS = 10.0
+
+def _is_permanent_not_found(err_str: str) -> bool:
+    """Detects if an image pull error is a permanent 404/manifest unknown vs transient network error."""
+    err_lower = err_str.lower()
+    return any(term in err_lower for term in [
+        "404", "manifest unknown", "not found", "tag does not exist", "repository does not exist"
+    ])
 
 class DockerService:
     def __init__(self):
@@ -96,31 +109,58 @@ class DockerService:
             resolver_env["RESOLVER_PORT"] = str(port)
             resolver_env["DNS_PORT"] = str(port)
 
+            is_host_net = (settings.DOCKER_NETWORK.strip().lower() == "host")
+
             container = None
             actual_tag = None
             last_err = None
 
             for tag in candidates:
-                try:
-                    logger.info(f"Attempting to spawn {container_name} with image '{tag}'...")
-                    container = self.client.containers.run(
-                        image=tag,
-                        name=container_name,
-                        detach=True,
-                        ports={'2053/udp': port, '2053/tcp': port},
-                        network=settings.DOCKER_NETWORK,
-                        environment=resolver_env,
-                        restart_policy={"Name": "unless-stopped"}
-                    )
-                    actual_tag = tag
-                    break  # Successfully spawned
-                except Exception as tag_err:
-                    err_str = str(tag_err)
-                    if "404" in err_str or "manifest unknown" in err_str or "not found" in err_str.lower():
-                        logger.warning(f"Image tag '{tag}' not found (404). Trying next candidate...")
+                success = False
+                for attempt in range(1, MAX_PULL_RETRIES + 1):
+                    try:
+                        logger.info(f"Attempting to spawn {container_name} with image '{tag}' on port {port} (attempt {attempt}/{MAX_PULL_RETRIES}, net={settings.DOCKER_NETWORK})...")
+                        run_kwargs = {
+                            "image": tag,
+                            "name": container_name,
+                            "detach": True,
+                            "environment": resolver_env,
+                            "restart_policy": {"Name": "unless-stopped"},
+                        }
+                        if is_host_net:
+                            run_kwargs["network_mode"] = "host"
+                        else:
+                            run_kwargs["ports"] = {f"{port}/udp": port, f"{port}/tcp": port, "2053/udp": port, "2053/tcp": port}
+                            run_kwargs["network"] = settings.DOCKER_NETWORK
+                            run_kwargs["extra_hosts"] = {
+                                "kafka-server": "host-gateway",
+                                "host.docker.internal": "host-gateway",
+                                "host.containers.internal": "host-gateway"
+                            }
+
+                        container = self.client.containers.run(**run_kwargs)
+                        actual_tag = tag
+                        success = True
+                        break  # Successfully spawned
+                    except Exception as tag_err:
+                        err_str = str(tag_err)
                         last_err = tag_err
-                        continue
-                    raise  # Non-404 error: re-raise immediately
+                        
+                        # 1. If permanent 404 / manifest unknown -> skip to next candidate immediately
+                        if _is_permanent_not_found(err_str):
+                            logger.warning(f"Image tag '{tag}' not found on registry (404/manifest unknown). Skipping to next candidate...")
+                            break
+                        
+                        # 2. Transient error (network timeout, rate-limiting, socket reset) -> retry with exponential backoff
+                        if attempt < MAX_PULL_RETRIES:
+                            backoff = min(INITIAL_BACKOFF_SECONDS * (2 ** (attempt - 1)) + random.uniform(0.1, 0.5), MAX_BACKOFF_SECONDS)
+                            logger.warning(f"Transient error pulling image '{tag}' ({tag_err}). Retrying in {backoff:.2f}s (attempt {attempt}/{MAX_PULL_RETRIES})...")
+                            time.sleep(backoff)
+                        else:
+                            logger.error(f"Exhausted {MAX_PULL_RETRIES} retries for image tag '{tag}': {tag_err}")
+
+                if success:
+                    break
 
             if container is None:
                 raise last_err or RuntimeError(f"All image tag candidates exhausted for version '{version}'")
