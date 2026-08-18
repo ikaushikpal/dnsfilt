@@ -111,6 +111,15 @@ class DockerService:
 
             is_host_net = (settings.DOCKER_NETWORK.strip().lower() == "host")
 
+            # Force cleanup of any dead/orphaned container with the same name before spawning
+            try:
+                existing_c = self.client.containers.get(container_name)
+                if existing_c:
+                    logger.info(f"Cleaning up pre-existing container '{container_name}' ({existing_c.id[:12]})...")
+                    existing_c.remove(force=True)
+            except Exception:
+                pass
+
             container = None
             actual_tag = None
             last_err = None
