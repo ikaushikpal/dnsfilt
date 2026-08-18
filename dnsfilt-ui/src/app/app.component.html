@@ -25,7 +25,7 @@
         </div>
       }
 
-      <!-- Left Navigation Sidebar (Dashboard Views Only) -->
+      <!-- Left Navigation Sidebar (Dashboard Views Only) - Fixed position with pinned bottom actions -->
       <aside 
         [class.translate-x-0]="sidebarOpen"
         [class.-translate-x-full]="!sidebarOpen"
@@ -33,10 +33,10 @@
         [class.lg:w-64]="sidebarOpen"
         [class.lg:w-0]="!sidebarOpen"
         [class.lg:overflow-hidden]="!sidebarOpen"
-        class="fixed lg:sticky top-[49px] sm:top-[53px] left-0 z-40 lg:z-10 h-[calc(100vh-49px)] sm:h-[calc(100vh-53px)] w-64 bg-stone-950/95 lg:bg-stone-950/90 border-r border-stone-800/80 backdrop-blur-md flex flex-col justify-between transition-all duration-200 ease-in-out shrink-0">
+        class="fixed top-[49px] sm:top-[53px] left-0 z-30 h-[calc(100vh-49px)] sm:h-[calc(100vh-53px)] w-64 bg-stone-950/95 border-r border-stone-800/80 backdrop-blur-md flex flex-col justify-between transition-all duration-200 ease-in-out shrink-0 select-none">
         
-        <!-- Top Navigation Links -->
-        <div class="p-3 space-y-1.5 overflow-y-auto font-mono text-xs">
+        <!-- Top Navigation Links (Scrollable if many tabs) -->
+        <div class="p-3 space-y-1.5 overflow-y-auto flex-1 font-mono text-xs">
 
           <!-- Dashboard -->
           <button 
@@ -126,8 +126,8 @@
 
         </div>
 
-        <!-- Sidebar Footer: Change Password Section + Sign Out -->
-        <div class="p-3 border-t border-stone-800/80 bg-stone-950 flex flex-col gap-2 font-mono text-xs">
+        <!-- Sidebar Footer: Change Password Section + Sign Out (Pinned to bottom) -->
+        <div class="p-3 border-t border-stone-800/80 bg-stone-950 flex flex-col gap-2 font-mono text-xs shrink-0 mt-auto">
           
           <!-- Change Password Button -->
           <button 
@@ -149,15 +149,22 @@
       </aside>
     }
 
-    <!-- Main Content Container: No padding on public pages (home/learn/cli) to allow full-bleed hero images -->
-    <main class="flex-1 min-w-0 w-full overflow-x-hidden" [class.p-2]="isDashboardRoute()" [class.sm:p-4]="isDashboardRoute()" [class.lg:p-6]="isDashboardRoute()">
+    <!-- Main Content Container: Left padding applied when fixed sidebar is open on desktop -->
+    <main 
+      class="flex-1 min-w-0 w-full overflow-x-hidden transition-all duration-200" 
+      [class.lg:pl-64]="currentUser && isDashboardRoute() && sidebarOpen"
+      [class.p-2]="isDashboardRoute()" 
+      [class.sm:p-4]="isDashboardRoute()" 
+      [class.lg:p-6]="isDashboardRoute()">
       <router-outlet></router-outlet>
     </main>
 
   </div>
 
   <!-- Universal Copyright Footer on All Pages -->
-  <footer class="w-full border-t border-stone-800/80 bg-stone-950 py-6 text-center font-mono text-xs text-stone-400">
+  <footer 
+    class="w-full border-t border-stone-800/80 bg-stone-950 py-6 text-center font-mono text-xs text-stone-400 transition-all duration-200"
+    [class.lg:pl-64]="currentUser && isDashboardRoute() && sidebarOpen">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <img src="/logo.png" alt="DNSFilt" class="h-5 w-auto">
