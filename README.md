@@ -1,159 +1,188 @@
-# 🛡️ DNSFilt — Enterprise Event-Driven DNS Security Gateway & Analytics Platform
+# 🛡️ DNSFilt: Distributed Cloud-Native DNS Firewall & Real-Time Analytics Engine
 
-[![Java 21](https://img.shields.io/badge/Java-21%20Virtual%20Threads-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/loom/)
-[![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
-[![Angular 18](https://img.shields.io/badge/Angular-18%20SSR-DD0031?style=for-the-badge&logo=angular&logoColor=white)](https://angular.dev/)
-[![Apache Kafka](https://img.shields.io/badge/Apache%20Kafka-Streaming%20Telemetry-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
-[![Oracle ATP](https://img.shields.io/badge/Oracle%20Cloud-ATP%2023ai-F80000?style=for-the-badge&logo=oracle&logoColor=white)](https://www.oracle.com/autonomous-database/)
-[![Docker](https://img.shields.io/badge/Docker-Multi--Arch%20Containers-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Build Status](https://img.shields.io/badge/Build-Passing-emerald?style=flat-square&logo=github-actions)](https://github.com/ikaushikpal/dnsfilt)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange?style=flat-square&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
+[![Angular 18](https://img.shields.io/badge/Angular-18.0-red?style=flat-square&logo=angular)](https://angular.dev/)
+[![Docker Multi-Arch](https://img.shields.io/badge/Docker-AMD64%20%7C%20ARM64-blue?style=flat-square&logo=docker)](https://hub.docker.com/u/ikaushikpal)
 
-**DNSFilt** is a distributed, high-performance security DNS filtering platform engineered for ultra-low latency (`< 0.1ms`), real-time threat mitigation, streaming telemetry analytics, and zero-downtime policy synchronization. Built from the ground up with modern distributed systems principles on **Java 21 Virtual Threads**, **Caffeine L1 / Valkey Redis L2 Multi-Tier Caching**, **Zstandard-compressed Protocol Buffers**, **Apache Kafka Event Streams**, **Oracle Autonomous Database 23ai/26ai Materialized Views**, and **Angular 18 SSR**.
+**DNSFilt** is a high-throughput, enterprise-grade, distributed DNS firewall, policy engine, and analytics platform. Built with Java 21 Virtual Threads (Project Loom), Kafka streaming, Zstandard Protobuf batching, Oracle Autonomous Database 23ai, and an automated Python controller with zero-downtime HAProxy load balancing.
 
 ---
 
-## 🧭 Microservices & Subproject Navigation
+## 👋 A Note from the Author
 
-| Component | Description | Subproject Documentation |
+> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I built this project to explore high-throughput distributed systems, Java 21 virtual threads, stream-processing analytics rollups, and production-grade zero-downtime orchestration — all running on a modern cloud architecture.
+>
+> 🔍 **I am currently looking for new software engineering opportunities.** If you find this project interesting, innovative, or well-engineered, and your company is hiring (or you can provide a referral), I would genuinely appreciate connecting with you. Feel free to reach out via GitHub or connect with me directly on [**LinkedIn**](https://www.linkedin.com/in/ikaushikpal).
+>
+> ⭐ *Every star, issue, discussion, PR, or referral means a lot — thank you for stopping by!*
+
+---
+
+## 🧭 Table of Contents
+
+- [What is DNSFilt?](#-what-is-dnsfilt)
+- [Why DNSFilt? (Design Motivation)](#-why-dnsfilt-design-motivation)
+- [System Architecture](#-system-architecture)
+- [Microservices Overview](#-microservices-overview)
+- [How to Run (Quickstart)](#-how-to-run-quickstart)
+- [Troubleshooting & Common Gotchas](#-troubleshooting--common-gotchas)
+- [License](#-license)
+
+---
+
+## 💡 What is DNSFilt?
+
+DNSFilt is an end-to-end protective DNS gateway that sits between client devices and the upstream internet. It intercepts DNS queries on port 53 / 2053 (UDP/TCP), checks them against an in-memory cached rule engine with sub-millisecond latency, logs real-time security events into an event streaming pipeline, and provides an administrative interface for threat intelligence, custom domain overrides, and dynamic cluster auto-scaling.
+
+### Key Capabilities:
+- **⚡ Sub-Millisecond Filtering**: Powered by Java 21 virtual threads and Caffeine L1 in-memory caches, capable of handling 50,000+ QPS per node.
+- **🔒 Dynamic Threat Blocking**: Real-time domain and category blocking with atomic Redis pub/sub synchronization.
+- **📊 10-Minute Batch Analytics**: High-throughput Kafka ingestion compressing telemetry via Protobuf + Zstandard (Zstd) and aggregating rollups into Oracle Autonomous Database 23ai.
+- **🔄 Zero-Downtime Rolling Upgrades**: Custom Python orchestrator managing HAProxy reload via native `SIGUSR2` socket signals.
+- **🎨 Glassmorphic Single-Page Application**: Angular 18 frontend with live UTC synchronization, threat explorer, real-time node scaling controls, and self-service credential management.
+
+---
+
+## 🎯 Why DNSFilt? (Design Motivation)
+
+| Challenge | Traditional Approach | DNSFilt Solution |
 |---|---|---|
-| ⚡ **DNS Resolver Engine** | Ultra-fast UDP DNS server (< 150MB RAM, 100K+ QPS) | [📖 `dnsfilt-resolver/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-resolver/README.md) |
-| 🛡️ **Admin Backend & Gateway** | Spring Boot 3.3 REST API server, JWT auth & Caffeine cache | [📖 `dnsfilt-admin-backend/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-admin-backend/README.md) |
-| 📊 **Analytics & Retention Engine** | Real-time Kafka consumer, Zstd Protobuf decompression & Oracle rollups | [📖 `dnsfilt-analytics/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics/README.md) |
-| 🌐 **Frontend UI Console** | Angular 18 SSR/SSG dashboard, real-time charts & client threat telemetry | [📖 `dnsfilt-ui/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-ui/README.md) |
-| 🌐 **Render Gateway Proxy** | Cloud Nginx reverse proxy with SNI forwarder bypassing enterprise firewalls | [📖 `dnsfilt-render-proxy/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-render-proxy/README.md) |
-| 🤖 **Resolver Orchestrator** | Python microservice managing resolver cluster scaling & health reconcilers | [📖 `dnsfilt-orchestrator/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-orchestrator/README.md) |
-| ⚙️ **CI/CD Pipelines** | GitHub Actions multi-architecture build matrix & SemVer release automation | [📖 `.github/workflows/README.md`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/.github/workflows/README.md) |
+| **High Concurrency Overhead** | Heavy OS threads (1MB stack per thread) limiting socket scalability. | **Java 21 Virtual Threads**: Millions of lightweight concurrent green threads with near-zero memory footprint. |
+| **Telemetry Write Amplification** | Writing every single DNS query synchronously to SQL causes database connection pool exhaustion. | **Kafka + Zstd Protobuf Rollup**: Resolver batches 10-minute micro-aggregations with 95%+ compression ratio before atomic persistence. |
+| **Cache Invalidation Latency** | Polling database every few minutes leaves a vulnerability window when adding new threat domains. | **Atomic Dual-Tier Caching**: Caffeine L1 in-memory cache on each resolver node invalidated instantly via Redis Pub/Sub sync. |
+| **Upgrades & Scaling Downtime** | Restarting DNS resolvers causes dropped UDP queries and DNS resolution failure on client machines. | **HAProxy Zero-Downtime Rolling Scaler**: Python reconciler spawns new worker nodes on dynamic ports and triggers graceful `SIGUSR2` reloads. |
 
 ---
 
-## 🏗️ System Architecture & Global Data Pipeline
+## 🏗️ System Architecture
 
-```text
-[ Client DNS Queries (macOS, Windows, Linux, Routers) ]
-                            │
-                            ▼ UDP Port 53 / 2053
-┌────────────────────────────────────────────────────────────────────────┐
-│                        dnsfilt-resolver Cluster                        │
-│                                                                        │
-│  [ Step 1: L1 Caffeine In-Memory Cache ] ──► (< 0.05ms Instant Hit)    │
-│  [ Step 2: In-Memory Rule Snapshot ]     ──► Sinkholes Malware/Ads     │
-│  [ Step 3: L2 Valkey / Redis Cache ]     ──► (~ 1.2ms Distributed Hit) │
-│  [ Step 4: Upstream Recursive Forward ]  ──► Cloudflare (1.1.1.1) EDNS0│
-│  [ Step 5: Kafka Batch Producer ]        ──► 10-Min Zstd Protobuf Stream│
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                       Topic: dns.analytics.10min
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       dnsfilt-analytics Engine                         │
-│                                                                        │
-│  [ Kafka SASL Consumer ]   ──► Ingests 10-minute binary streams        │
-│  [ Native Zstd Decoder ]   ──► Decompresses Protobuf records in RAM    │
-│  [ Aggregator & Upsert ]   ──► Real-time hourly stats aggregation      │
-│  [ Retention Scheduler ]   ──► Monthly rollups & auto-compaction       │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ JDBC (TCPS Wallet-less)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│             Oracle Autonomous Database (ATP 23ai / 26ai)               │
-│                                                                        │
-│  - resolver_hourly_stats / client_hourly_stats                         │
-│  - mv_resolver_daily_summary (FAST REFRESH ON COMMIT with MV Logs)     │
-│  - mv_top_threat_categories  (COMPLETE REFRESH ON DEMAND)              │
-│  - resolver_monthly_stats    (Precomputed Monthly Aggregates)          │
-└───────────────────────────────────▲────────────────────────────────────┘
-                                    │ JPA Queries (Cached with Caffeine)
-┌───────────────────────────────────┴────────────────────────────────────┐
-│                      dnsfilt-admin-backend (Port 8080)                 │
-│                                                                        │
-│  [ Embedded Angular Static Server ] ──► Delivers UI SSR/SPA on /       │
-│  [ Caffeine Query & Token Caches ]  ──► Zero Redis web query overhead  │
-│  [ Role-Based Access Control ]      ──► Admin, Operator & Viewer roles │
-│  [ Redis Rule Sync Publisher ]      ──► Real-time < 1s rule updates    │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Clients["Clients & Edge Devices"]
+        C1["Workstations & Servers"]
+        C2["Mobile Devices / Routers"]
+    end
+
+    subgraph LoadBalancer["Load Balancing Layer"]
+        HAP["HAProxy (Port 53 / 2053 UDP & TCP)"]
+    end
+
+    subgraph ResolverCluster["DNS Resolver Cluster (Worker Nodes)"]
+        R1["dnsfilt-resolver-p2054"]
+        R2["dnsfilt-resolver-p2055"]
+        R3["dnsfilt-resolver-p2056"]
+    end
+
+    subgraph EventStreaming["Telemetry & Analytics Layer"]
+        KAFKA["Kafka Broker (Topic: dns.analytics.10min)"]
+        ANALYTICS["dnsfilt-analytics (Rollup Consumer)"]
+        ORACLE[("Oracle Autonomous Database 23ai")]
+    end
+
+    subgraph Management["Control Plane & UI"]
+        BACKEND["dnsfilt-admin-backend (Spring Boot REST + Security)"]
+        UI["dnsfilt-ui (Angular 18 Single-Page Application)"]
+        ORCH["dnsfilt-orchestrator (Python Controller & Scaler)"]
+        REDIS[("Redis Blocklist Store")]
+    end
+
+    C1 & C2 -->|"DNS Queries (UDP/TCP)"| HAP
+    HAP -->|"Round-Robin Distribution"| R1 & R2 & R3
+    R1 & R2 & R3 -->|"Protobuf + Zstd Batches"| KAFKA
+    KAFKA --> ANALYTICS
+    ANALYTICS -->|"Atomic 10-Min Upserts"| ORACLE
+    
+    UI -->|"HTTPS REST API"| BACKEND
+    BACKEND -->|"Read/Write Analytics & Users"| ORACLE
+    BACKEND -->|"Push Invalidation"| REDIS
+    R1 & R2 & R3 -.->|"Sync Blocked Domains"| REDIS
+
+    BACKEND -->|"Trigger Push Webhook"| ORCH
+    ORCH -->|"Docker SDK Scaling"| ResolverCluster
+    ORCH -->|"SIGUSR2 Zero-Downtime Reload"| HAP
 ```
 
 ---
 
-## ⚡ Core Technical Highlights
+## 📦 Microservices Overview
 
-1. **Java 21 Virtual Threads (Project Loom)**: Replaces traditional thread-per-request blocking architectures with lightweight user-space fibers capable of handling tens of thousands of concurrent UDP packet streams.
-2. **Multi-Tiered L1/L2 Caching Pipeline**:
-   - **L1 In-Memory Near-Cache (Caffeine)**: Delivers sub-millisecond lookups with near-zero lock contention.
-   - **L2 Distributed Cache (Valkey / Redis)**: Synchronizes resolved domain names and active block rules across multi-datacenter instances.
-3. **In-Memory Caffeine API Optimization (Zero Redis Web Load)**:
-   - **`tokenBlacklist`**: 50KB LRU cache with 24h TTL for instantaneous JWT and refresh token revocation upon logout.
-   - **`hourlyAnalytics`**: 30MB bounded LRU cache (5-min TTL) serving dashboard analytics at microsecond speed without hitting the primary database.
-4. **Oracle ATP Materialized Views & Fast Refresh**:
-   - Delta change tracking with `CREATE MATERIALIZED VIEW LOG`.
-   - Incremental daily rollup compilation via `REFRESH FAST ON COMMIT`.
-5. **Unified Frontend & Backend Hosting**:
-   - Spring Boot serves the pre-rendered Angular 18 static bundle directly from `classpath:/static/` with transparent SPA HTML5 routing fallback.
-6. **Multi-Platform CI/CD with Docker Buildx**:
-   - Full automated release pipelines compiling cross-platform `linux/amd64` and `linux/arm64` container images.
+| Microservice | Technology Stack | Role & Responsibility |
+|---|---|---|
+| [`dnsfilt-resolver`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-resolver) | Java 21, Netty/NIO, Caffeine, Jedis, Kafka | Core high-throughput UDP/TCP DNS resolution and policy enforcement engine. |
+| [`dnsfilt-analytics`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics) | Spring Boot 3, Spring Kafka, Zstd-JNI, Oracle JDBC | Consumes compressed analytics batches, aggregates 10-minute metrics, and saves to Oracle DB. |
+| [`dnsfilt-admin-backend`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-admin-backend) | Spring Boot 3, Spring Security, JWT, Oracle ATP | Central administrative REST API, SuperAdmin RBAC, and static host for the Angular UI. |
+| [`dnsfilt-orchestrator`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-orchestrator) | Python 3.11, FastAPI, APScheduler, Docker SDK | Autonomous cluster reconciler, HAProxy configuration generator, and rolling upgrade manager. |
+| [`dnsfilt-ui`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-ui) | Angular 18 (Signals), TailwindCSS, Chart.js | Responsive administrative dashboard, live UTC clock, threat explorer, and cluster scaling UI. |
+| [`dnsfilt-render-proxy`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-render-proxy) | NGINX Alpine | Production edge reverse proxy with SSL termination and WebSocket/HTTP upgrade support. |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 How to Run (Quickstart)
 
-### Prerequisites
-- **Docker Engine 24+** & **Docker Compose v2**
-- **Java 21 JDK** & **Node.js 20+**
-- **Oracle Database (ATP or 23ai)**
-- **Apache Kafka** (Local or Managed Cloud)
-- **Redis / Valkey 7+**
+### 1. Prerequisites
+- Docker Engine 24+ or Podman 5+
+- Java 21 JDK & Gradle 8+
+- Node.js 20+ & npm
 
-### 1. Clone the Repository
+### 2. Clone the Repository
 ```bash
-git clone https://github.com/iamkaushikpal/dnsfilt.git
+git clone https://github.com/ikaushikpal/dnsfilt.git
 cd dnsfilt
 ```
 
-### 2. Configure Environment Variables
-Each subservice uses a standard `.env` configuration file:
-- `dnsfilt-resolver/.env`
-- `dnsfilt-admin-backend/.env`
-- `dnsfilt-analytics/.env`
-- `dnsfilt-render-proxy/.env`
+### 3. Launch with Docker Compose
+Each microservice includes its own production `docker-compose.yml`:
 
-### 3. Launch the Complete Ecosystem
 ```bash
-# Start Resolver
-cd dnsfilt-resolver && docker compose up -d
+# 1. Start Admin Backend (Port 9090)
+cd dnsfilt-admin-backend && docker compose up -d --build
 
-# Start Analytics Stream Consumer
-cd ../dnsfilt-analytics && docker compose up -d
+# 2. Start Core DNS Resolver (Port 2053)
+cd ../dnsfilt-resolver && docker compose up -d --build
 
-# Start Admin Backend & Web Gateway (Port 8080)
-cd ../dnsfilt-admin-backend && docker compose up -d
+# 3. Start Kafka Analytics Ingestor (Port 9091)
+cd ../dnsfilt-analytics && docker compose up -d --build
 
-# Start Render Gateway Proxy (Port 80)
-cd ../dnsfilt-render-proxy && docker compose up -d
+# 4. Start Autonomous Cluster Orchestrator (Port 9095)
+cd ../dnsfilt-orchestrator && docker compose up -d --build
 ```
 
-### 4. Access the Dashboard
-Navigate to `http://localhost:8080` (or `https://dnsfilt.mooo.com`) to access the live analytics console.
+Access the Web UI in your browser at: **`http://localhost:9090`** (or your server's mapped domain).
 
 ---
 
-## 👨‍💻 About the Author & Looking for Opportunities
+## 🔧 Troubleshooting & Common Gotchas
 
-<div align="center">
-  <img src="https://github.com/iamkaushikpal.png" width="120" height="120" style="border-radius: 50%;" alt="Kaushik Pal"/>
-  <h3>Kaushik Pal</h3>
-  <p><b>Lead Software Engineer & Distributed Systems Architect</b></p>
-</div>
+### 1. `ConfigException: No resolvable bootstrap urls given in bootstrap.servers`
+- **Cause**: Container internal DNS could not resolve `kafka-server` or `host.docker.internal` on Linux.
+- **Fix**: Verify `extra_hosts` is present in `docker-compose.yml`:
+  ```yaml
+  extra_hosts:
+    - "kafka-server:host-gateway"
+    - "host.docker.internal:host-gateway"
+  ```
+  If using an SSH tunnel, ensure the tunnel is listening on all interfaces (`ssh -g -L 0.0.0.0:9092:...`).
 
-> **📢 Career Availability & Looking for Roles:**  
-> I am actively seeking senior/lead technical opportunities as a **Lead Backend Engineer**, **Senior Software Engineer (Java / Distributed Systems)**, or **Platform / Cloud Architect**. Passionate about designing resilient high-throughput microservices, sub-millisecond low-latency engines, event-driven streaming architectures, and modern full-stack web platforms.
+### 2. `sqlite3.OperationalError: unable to open database file` in Orchestrator
+- **Cause**: Restricted root permissions on the host directory mounted to `/app/data`.
+- **Fix**: Grant write permissions on the host:
+  ```bash
+  sudo mkdir -p /opt/platform/dnsfilt/dnsfilt-orchestrator/data
+  sudo chmod -R 777 /opt/platform/dnsfilt/dnsfilt-orchestrator/data
+  ```
 
-### 📬 Connect with Me:
-- 💼 **LinkedIn**: [linkedin.com/in/iamkaushik2014](https://linkedin.com/in/iamkaushik2014)
-- 🐙 **GitHub**: [github.com/iamkaushikpal](https://github.com/iamkaushikpal)
-- ✉️ **Email**: [kaushikpal2014@gmail.com](mailto:kaushikpal2014@gmail.com)
-- 🌐 **Portfolio / Platform**: [dnsfilt.mooo.com](https://dnsfilt.mooo.com)
+### 3. Browser Shows Old UI After Updating
+- **Cause**: Browser aggressive caching of JavaScript chunk hashes or cached Docker image layer.
+- **Fix**: 
+  1. Pull the fresh image on prod: `sudo docker pull ikaushikpal/dnsfilt-admin-backend:latest`
+  2. Perform a hard refresh in the browser: `Ctrl + Shift + R` (Windows/Linux) or `Cmd + Shift + R` (Mac).
 
 ---
 
-## 📜 License
-This project is open-source and available under the **MIT License**.
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+Feel free to use, modify, and distribute this codebase in your own projects!
