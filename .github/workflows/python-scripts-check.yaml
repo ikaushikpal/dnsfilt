@@ -1,58 +1,57 @@
 # ==============================================================================
-# Workflow Name: Python Scripts Quality Gate
-# Purpose: Automatically runs byte-compilation, CLI output verification, and import
-#          checks under Python 3.9 runtime whenever files under 'scripts/**' change.
-#          Runs on Pull Requests only — not on direct pushes to main.
+# Workflow Name: Python Quality Gate (Python 3.11)
+# Purpose: Automatically verifies compilation and dependency imports under Python 3.11
+#          runtime whenever files under 'dnsfilt-orchestrator/**' change.
 # ==============================================================================
-name: Python Scripts Quality Gate
+name: Python Quality Gate
 
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'scripts/**'
+      - 'dnsfilt-orchestrator/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: python-scripts-${{ github.ref }}
+  group: python-quality-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   python-quality:
-    name: Validate Python Scripts (Python 3.9)
+    name: Validate Orchestrator (Python 3.11)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.9
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: 'dnsfilt-orchestrator/requirements.txt'
 
-      - name: Verify Python Script Compilation
-        shell: bash
+      - name: Install dependencies
+        working-directory: dnsfilt-orchestrator
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify Python 3.11 Byte-Compilation
+        working-directory: dnsfilt-orchestrator
         run: |
           set -euo pipefail
-          echo "Compiling Python scripts for Python 3.9 compatibility..."
-          python3 -m py_compile scripts/cert-manager/manage_cert.py
-          python3 -m py_compile scripts/cert-manager/cert_manager/*.py
-          python3 -m py_compile scripts/platform-deployer/deploy.py
-          python3 -m py_compile scripts/platform-deployer/deployer/*.py
+          echo "Compiling Orchestrator Python 3.11 source files..."
+          python3 -m compileall app/
 
-      - name: Test Cert-Manager CLI Output
-        shell: bash
+      - name: Test Orchestrator Module Imports
+        working-directory: dnsfilt-orchestrator
         run: |
           set -euo pipefail
-          python3 scripts/cert-manager/manage_cert.py list
-
-      - name: Test Platform-Deployer Imports
-        shell: bash
-        run: |
-          set -euo pipefail
-          PYTHONPATH=scripts/platform-deployer python3 -c "from deployer.config import DeploymentConfig; from deployer.email_reporter import EmailReporter; print(DeploymentConfig())"
+          echo "Verifying FastAPI app and config importability..."
+          python3 -c "import app.config; import app.models; import app.schemas; print('All Python 3.11 modules imported cleanly!')"
