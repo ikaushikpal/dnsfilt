@@ -1,4 +1,4 @@
-<nav class="w-full bg-stone-950/95 border-b border-stone-800/80 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 py-2.5 font-sans">
+<nav class="w-full px-3 sm:px-6 py-2.5 font-sans">
   <div class="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
     
     <!-- LEFT: Logo (+ Hamburger if in Dashboard) -->
@@ -28,15 +28,25 @@
         <span class="font-bold tracking-wide">{{ gmtTime() }}</span>
       </div>
     } @else {
-      <!-- On Home / Public Pages: CLI, Learn -->
-      <div class="flex items-center gap-2 font-mono text-xs overflow-x-auto py-1 scrollbar-none">
+      <!-- On Home / Public Pages: Guide, CLI, Learn -->
+      <div class="flex items-center gap-1.5 sm:gap-2 font-mono text-xs overflow-x-auto py-1 scrollbar-none">
+        <button 
+          (click)="selectTab('guide')" 
+          [class.bg-[rgb(230,130,16)]]="activeTab() === 'guide'"
+          [class.text-stone-950]="activeTab() === 'guide'"
+          [class.font-bold]="activeTab() === 'guide'"
+          [class.text-stone-300]="activeTab() !== 'guide'"
+          class="px-3 sm:px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800 active:scale-95 text-xs">
+          <i class="fa-solid fa-sliders text-xs"></i> <span>Guide</span>
+        </button>
+
         <button 
           (click)="selectTab('toys')" 
           [class.bg-[rgb(230,130,16)]]="activeTab() === 'toys'"
           [class.text-stone-950]="activeTab() === 'toys'"
           [class.font-bold]="activeTab() === 'toys'"
           [class.text-stone-300]="activeTab() !== 'toys'"
-          class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800 active:scale-95 text-xs">
+          class="px-3 sm:px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800 active:scale-95 text-xs">
           <i class="fa-solid fa-terminal text-xs"></i> <span>CLI</span>
         </button>
 
@@ -46,7 +56,7 @@
           [class.text-stone-950]="activeTab() === 'learn'"
           [class.font-bold]="activeTab() === 'learn'"
           [class.text-stone-300]="activeTab() !== 'learn'"
-          class="px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800 active:scale-95 text-xs">
+          class="px-3 sm:px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 hover:bg-stone-800 active:scale-95 text-xs">
           <i class="fa-solid fa-book text-xs"></i> <span>Learn</span>
         </button>
       </div>

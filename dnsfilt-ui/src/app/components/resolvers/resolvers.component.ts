@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, ResolverConfig, SummaryStats } from '../../services/api.service';
+import { RefreshService } from '../../services/refresh.service';
 
 export interface ResolverNode {
   resolverId: string;
@@ -41,11 +42,17 @@ export class ResolversComponent implements OnInit, OnDestroy {
   resolversData = signal<ResolverNode[]>([]);
   private refreshInterval: any;
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private refreshService: RefreshService
+  ) {}
 
   ngOnInit(): void {
     this.loadData();
     this.refreshInterval = setInterval(() => this.loadData(), 4000);
+    this.refreshService.refresh$.subscribe(() => {
+      this.loadData();
+    });
   }
 
   ngOnDestroy(): void {

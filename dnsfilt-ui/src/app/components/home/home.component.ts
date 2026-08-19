@@ -19,7 +19,18 @@ export class HomeComponent {
     }
   }
 
+  navigateToGuide(): void {
+    this.router.navigate(['/guide']);
+  }
+
   navigateToCli(): void {
     this.router.navigate(['/services']);
+  }
+
+  scrollToAuthor(): void {
+    const el = document.getElementById('about-author-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 }

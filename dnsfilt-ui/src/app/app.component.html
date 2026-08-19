@@ -1,19 +1,24 @@
-<div class="min-h-screen bg-[#090c10] text-stone-200 font-sans selection:bg-[rgb(230,130,16)] selection:text-stone-950 flex flex-col w-full overflow-x-hidden">
+<div class="min-h-screen bg-[#090c10] text-stone-200 font-sans selection:bg-[rgb(230,130,16)] selection:text-stone-950 flex flex-col w-full">
   
   <!-- Global Toast Notification -->
   <app-toast [message]="toastMessage"></app-toast>
 
-  <!-- Top Navigation Bar -->
-  <app-header 
-    [activeTab]="activeTab"
-    [currentUser]="currentUser"
-    [role]="userRole"
-    (tabChange)="onTabChange($event)"
-    (openLogin)="navigateToLogin()"
-    (toggleSidebar)="toggleSidebar()">
-  </app-header>
+  <!-- Top Navigation Bar (Sticky with 100vh scroll-up reveal on public pages) -->
+  <header 
+    [class.translate-y-0]="isNavbarVisible()"
+    [class.-translate-y-full]="!isNavbarVisible()"
+    class="sticky top-0 z-40 w-full bg-stone-950/95 border-b border-stone-800/80 backdrop-blur-md transition-transform duration-300 ease-in-out">
+    <app-header 
+      [activeTab]="activeTab"
+      [currentUser]="currentUser"
+      [role]="userRole"
+      (tabChange)="onTabChange($event)"
+      (openLogin)="navigateToLogin()"
+      (toggleSidebar)="toggleSidebar()">
+    </app-header>
+  </header>
 
-  <!-- Main Layout Container: Shows Sidebar ONLY when on Dashboard routes -->
+  <!-- Main Layout Container -->
   <div class="flex-1 w-full flex relative">
     
     @if (currentUser && isDashboardRoute()) {
@@ -25,7 +30,7 @@
         </div>
       }
 
-      <!-- Left Navigation Sidebar (Dashboard Views Only) - Fixed position with pinned bottom actions -->
+      <!-- Left Navigation Sidebar (Dashboard Views Only) - Fixed position with dynamic viewport height -->
       <aside 
         [class.translate-x-0]="sidebarOpen"
         [class.-translate-x-full]="!sidebarOpen"
@@ -33,7 +38,7 @@
         [class.lg:w-64]="sidebarOpen"
         [class.lg:w-0]="!sidebarOpen"
         [class.lg:overflow-hidden]="!sidebarOpen"
-        class="fixed top-[49px] sm:top-[53px] left-0 z-30 h-[calc(100vh-49px)] sm:h-[calc(100vh-53px)] w-64 bg-stone-950/95 border-r border-stone-800/80 backdrop-blur-md flex flex-col justify-between transition-all duration-200 ease-in-out shrink-0 select-none">
+        class="fixed top-[49px] sm:top-[53px] left-0 z-30 h-[calc(100dvh-49px)] sm:h-[calc(100vh-53px)] w-64 bg-stone-950/95 border-r border-stone-800/80 backdrop-blur-md flex flex-col justify-between transition-all duration-200 ease-in-out shrink-0 select-none">
         
         <!-- Top Navigation Links (Scrollable if many tabs) -->
         <div class="p-3 space-y-1.5 overflow-y-auto flex-1 font-mono text-xs">
@@ -126,13 +131,13 @@
 
         </div>
 
-        <!-- Sidebar Footer: Change Password Section + Sign Out (Pinned to bottom) -->
-        <div class="p-3 border-t border-stone-800/80 bg-stone-950 flex flex-col gap-2 font-mono text-xs shrink-0 mt-auto">
+        <!-- Sidebar Footer: Change Password Section + Sign Out (Elevated for mobile safe area) -->
+        <div class="p-3 pb-20 sm:pb-3 border-t border-stone-800/80 bg-stone-950 flex flex-col gap-2 font-mono text-xs shrink-0 mt-auto">
           
           <!-- Change Password Button -->
           <button 
             (click)="openChangePasswordModal()" 
-            class="w-full bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-amber-400 border border-stone-800 hover:border-amber-500/50 py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 active:scale-95">
+            class="w-full bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-amber-400 border border-stone-800 hover:border-amber-500/50 py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 active:scale-95 shadow-sm">
             <i class="fa-solid fa-key text-xs"></i>
             <span>Change Password</span>
           </button>
@@ -140,7 +145,7 @@
           <!-- Sign Out Button -->
           <button 
             (click)="onLogout()" 
-            class="w-full bg-stone-900 hover:bg-rose-950/60 hover:text-rose-300 text-stone-300 border border-stone-800 hover:border-rose-800/80 py-2 px-3 rounded-xl transition flex items-center justify-center gap-2 active:scale-95">
+            class="w-full bg-stone-900 hover:bg-rose-950/60 hover:text-rose-300 text-stone-300 border border-stone-800 hover:border-rose-800/80 py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 active:scale-95 shadow-sm">
             <i class="fa-solid fa-right-from-bracket text-xs"></i>
             <span>Sign Out</span>
           </button>
@@ -160,6 +165,18 @@
     </main>
 
   </div>
+
+  <!-- Floating Dashboard Quick-Refresh Button -->
+  @if (currentUser && isDashboardRoute()) {
+    <div class="fixed bottom-6 right-6 z-40">
+      <button 
+        (click)="triggerGlobalRefresh()" 
+        title="Refresh Dashboard Data & Telemetry"
+        class="w-12 h-12 rounded-2xl bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 shadow-2xl flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 border border-amber-400/40 group backdrop-blur-md">
+        <i [class.fa-spin]="isRefreshing()" class="fa-solid fa-arrows-rotate text-lg group-hover:rotate-180 transition-transform"></i>
+      </button>
+    </div>
+  }
 
   <!-- Universal Copyright Footer on All Pages -->
   <footer 

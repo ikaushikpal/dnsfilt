@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, OnInit, OnDestroy, signal, Inje
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 
-export type NavTab = 'home' | 'dashboard' | 'clients' | 'threats' | 'resolvers' | 'toys' | 'learn' | 'contact' | 'admin' | 'users';
+export type NavTab = 'home' | 'guide' | 'dashboard' | 'clients' | 'threats' | 'resolvers' | 'toys' | 'learn' | 'about' | 'contact' | 'admin' | 'users';
 
 @Component({
   selector: 'app-header',

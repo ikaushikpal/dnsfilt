@@ -167,6 +167,10 @@ export class ApiService {
     return this.http.post<DomainRule>(`${this.apiBase}/rules`, rule, { headers: this.getHeaders() });
   }
 
+  batchAddRules(rules: Partial<DomainRule>[]): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiBase}/rules/batch`, rules, { headers: this.getHeaders() });
+  }
+
   syncRules(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.apiBase}/rules/sync`, {}, { headers: this.getHeaders() });
   }
