@@ -217,91 +217,129 @@
     </div>
   </div>
 
-  <!-- 3. Two Grid Layout: Category Breakdown & Top Blocked Domains (Stacked on Mobile) -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-    
-    <!-- Blocked Traffic by Category -->
-    <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
-      <div>
-        <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
-          <i class="fa-solid fa-layer-group text-[rgb(230,130,16)]"></i> Blocked Traffic by Category
-        </h3>
-        <p class="text-xs text-stone-400 font-mono mt-0.5">Top DNS filtering categories for {{ selectedTimeRange() }}</p>
-      </div>
-
-      <div class="space-y-3 font-mono text-xs">
-        @if (categoryData().length === 0) {
-          <div class="py-8 text-center text-stone-500 font-mono">No category threat blocks recorded.</div>
-        }
-        @for (cat of categoryData(); track cat.category) {
-          <div class="space-y-1">
-            <div class="flex justify-between text-stone-300">
-              <span class="font-bold flex items-center gap-2">
-                <span [class.text-rose-400]="cat.category === 'MALWARE' || cat.category === 'PHISHING'" [class.text-[rgb(230,130,16)]]="cat.category === 'ADS'">
-                  {{ cat.category }}
-                </span>
-              </span>
-              <span>{{ cat.blockedQueries | number }} queries</span>
-            </div>
-            <div class="w-full bg-stone-950 h-3.5 rounded-full overflow-hidden border border-stone-800 flex">
-              <div 
-                [style.width.%]="(cat.blockedQueries * 100.0) / maxCategoryBlocked()"
-                [class.bg-rose-500]="cat.category === 'MALWARE' || cat.category === 'PHISHING'"
-                [class.bg-[rgb(230,130,16)]]="cat.category === 'ADS'"
-                [class.bg-indigo-400]="cat.category === 'TRACKING'"
-                [class.bg-stone-500]="cat.category === 'OTHER'"
-                class="h-full rounded-full transition-all">
-              </div>
-            </div>
-          </div>
-        }
-      </div>
+  <!-- 3. Blocked Traffic by Category (Full Width) -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+    <div>
+      <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
+        <i class="fa-solid fa-layer-group text-[rgb(230,130,16)]"></i> Blocked Traffic by Category
+      </h3>
+      <p class="text-xs text-stone-400 font-mono mt-0.5">Top DNS filtering categories for {{ selectedTimeRange() }}</p>
     </div>
 
-    <!-- Top Blocked Domains Table (Horizontally Scrollable) -->
-    <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+    <div class="space-y-3 font-mono text-xs">
+      @if (categoryData().length === 0) {
+        <div class="py-8 text-center text-stone-500 font-mono">No category threat blocks recorded.</div>
+      }
+      @for (cat of categoryData(); track cat.category) {
+        <div class="space-y-1">
+          <div class="flex justify-between text-stone-300">
+            <span class="font-bold flex items-center gap-2">
+              <span [class]="getCategoryTextColor(cat.category)">
+                {{ cat.category }}
+              </span>
+            </span>
+            <span class="text-stone-400 font-semibold">{{ cat.blockedQueries | number }} queries</span>
+          </div>
+          <div class="w-full bg-stone-950 h-3 rounded-full overflow-hidden border border-stone-800 flex">
+            <div 
+              [style.width.%]="(cat.blockedQueries * 100.0) / maxCategoryBlocked()"
+              [class]="getCategoryColor(cat.category)"
+              class="h-full rounded-full transition-all">
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- 4. Top Blocked Domains Table (Full Width with 10-Item Pagination) -->
+  <div class="bg-stone-900/80 border border-stone-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-800 pb-4">
       <div>
         <h3 class="text-md font-mono font-bold text-white flex items-center gap-2">
           <i class="fa-solid fa-ban text-rose-400"></i> Top Blocked Domains
         </h3>
-        <p class="text-xs text-stone-400 font-mono mt-0.5">Highest volume domain block requests</p>
+        <p class="text-xs text-stone-400 font-mono mt-0.5">Highest volume domain block requests (Showing 10 per page)</p>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
-          <thead>
-            <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
-              <th class="py-2.5 px-3 text-center">Rank</th>
-              <th class="py-2.5 px-3">Domain</th>
-              <th class="py-2.5 px-3">Category</th>
-              <th class="py-2.5 px-3 text-right">Requests</th>
-              <th class="py-2.5 px-3 text-right">Clients</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-stone-800/60">
-            @if (topBlockedData().length === 0) {
-              <tr>
-                <td colspan="5" class="py-8 text-center text-stone-500 font-mono">No blocked domain activity.</td>
-              </tr>
-            }
-            @for (d of topBlockedData(); track d.rank) {
-              <tr class="hover:bg-stone-800/40">
-                <td class="py-2.5 px-3 text-center text-[rgb(230,130,16)] font-bold">#{{ d.rank }}</td>
-                <td class="py-2.5 px-3 text-white font-semibold">{{ d.domain }}</td>
-                <td class="py-2.5 px-3">
-                  <span class="bg-stone-950 border border-stone-800 text-stone-300 px-2 py-0.5 rounded text-[10px]">
-                    {{ d.category }}
-                  </span>
-                </td>
-                <td class="py-2.5 px-3 text-right text-rose-400 font-bold">{{ d.requests | number }}</td>
-                <td class="py-2.5 px-3 text-right text-stone-400">{{ d.clients | number }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <!-- Pagination Controls -->
+      @if (totalTopBlockedPages() > 1) {
+        <div class="flex items-center gap-2 font-mono text-xs">
+          <span class="text-stone-400 text-xs">Page {{ topBlockedPage() }} of {{ totalTopBlockedPages() }}</span>
+          <button 
+            (click)="prevTopBlockedPage()" 
+            [disabled]="topBlockedPage() <= 1"
+            class="px-2.5 py-1 rounded-lg bg-stone-950 border border-stone-800 text-stone-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <button 
+            (click)="nextTopBlockedPage()" 
+            [disabled]="topBlockedPage() >= totalTopBlockedPages()"
+            class="px-2.5 py-1 rounded-lg bg-stone-950 border border-stone-800 text-stone-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+      }
     </div>
 
+    <div class="overflow-x-auto">
+      <table class="w-full text-left font-mono text-xs border-collapse whitespace-nowrap">
+        <thead>
+          <tr class="bg-stone-950 border-b border-stone-800 text-stone-400">
+            <th class="py-2.5 px-4 text-center w-16">Rank</th>
+            <th class="py-2.5 px-4">Domain</th>
+            <th class="py-2.5 px-4">Category</th>
+            <th class="py-2.5 px-4 text-right">Requests</th>
+            <th class="py-2.5 px-4 text-right">Unique Clients</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-800/60">
+          @if (topBlockedData().length === 0) {
+            <tr>
+              <td colspan="5" class="py-8 text-center text-stone-500 font-mono">No blocked domain activity.</td>
+            </tr>
+          }
+          @for (d of paginatedTopBlockedData(); track d.domain) {
+            <tr class="hover:bg-stone-800/40">
+              <td class="py-2.5 px-4 text-center text-[rgb(230,130,16)] font-bold">#{{ d.rank }}</td>
+              <td class="py-2.5 px-4 text-white font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-shield-virus text-rose-400 text-xs"></i>
+                <span>{{ d.domain }}</span>
+              </td>
+              <td class="py-2.5 px-4">
+                <span class="bg-stone-950 border border-stone-800 text-stone-300 px-2.5 py-0.5 rounded-full text-[10px] font-bold" [class]="getCategoryTextColor(d.category)">
+                  {{ d.category }}
+                </span>
+              </td>
+              <td class="py-2.5 px-4 text-right text-rose-400 font-bold">{{ d.requests | number }}</td>
+              <td class="py-2.5 px-4 text-right text-stone-400">{{ d.clients | number }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bottom Pagination Footer if multiple pages -->
+    @if (totalTopBlockedPages() > 1) {
+      <div class="flex justify-between items-center pt-2 text-stone-400 font-mono text-xs border-t border-stone-800/60">
+        <span>Total: {{ topBlockedData().length }} blocked domains</span>
+        <div class="flex items-center gap-1.5">
+          <button 
+            (click)="prevTopBlockedPage()" 
+            [disabled]="topBlockedPage() <= 1"
+            class="px-3 py-1 rounded-lg bg-stone-950 border border-stone-800 text-stone-300 hover:text-white disabled:opacity-40 transition">
+            Prev
+          </button>
+          <span class="px-2 font-bold text-white">{{ topBlockedPage() }} / {{ totalTopBlockedPages() }}</span>
+          <button 
+            (click)="nextTopBlockedPage()" 
+            [disabled]="topBlockedPage() >= totalTopBlockedPages()"
+            class="px-3 py-1 rounded-lg bg-stone-950 border border-stone-800 text-stone-300 hover:text-white disabled:opacity-40 transition">
+            Next
+          </button>
+        </div>
+      </div>
+    }
   </div>
 
   <!-- 4. Top DNS Clients Table -->

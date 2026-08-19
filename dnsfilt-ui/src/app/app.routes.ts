@@ -12,12 +12,20 @@ export const routes: Routes = [
     loadComponent: () => import('./components/home/home.component').then(m => m.HomeComponent)
   },
   {
+    path: 'guide',
+    loadComponent: () => import('./components/guide/guide.component').then(m => m.GuideComponent)
+  },
+  {
     path: 'services',
     loadComponent: () => import('./components/cli-services/cli-services.component').then(m => m.CliServicesComponent)
   },
   {
     path: 'learn',
     loadComponent: () => import('./components/learn/learn.component').then(m => m.LearnComponent)
+  },
+  {
+    path: 'about',
+    loadComponent: () => import('./components/about/about.component').then(m => m.AboutComponent)
   },
   {
     path: 'contact',

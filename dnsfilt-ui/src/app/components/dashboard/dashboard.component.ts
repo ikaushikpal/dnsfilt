@@ -2,6 +2,8 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, SummaryStats, TrafficPoint, CategoryBreakdown, TopBlockedDomain, TopClient } from '../../services/api.service';
+import { RefreshService } from '../../services/refresh.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
@@ -46,10 +48,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
   topBlockedData = signal<TopBlockedDomain[]>([]);
   topClientsData = signal<TopClient[]>([]);
 
+  // Pagination for Top Blocked Domains (10 per page)
+  topBlockedPage = signal<number>(1);
+  topBlockedPageSize = signal<number>(10);
+
+  totalTopBlockedPages = computed(() => {
+    return Math.max(1, Math.ceil(this.topBlockedData().length / this.topBlockedPageSize()));
+  });
+
+  paginatedTopBlockedData = computed(() => {
+    const page = this.topBlockedPage();
+    const size = this.topBlockedPageSize();
+    const start = (page - 1) * size;
+    return this.topBlockedData().slice(start, start + size);
+  });
+
   // Hover/active tooltip bar for mobile touch interaction
   activePoint = signal<TrafficPoint | null>(null);
 
   private refreshInterval: any;
+  private refreshSub?: Subscription;
 
   maxCategoryBlocked = computed(() => {
     const cats = this.categoryData();
@@ -63,7 +81,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return Math.max(...tf.map(t => t.totalQueries || 0), 100);
   });
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private refreshService: RefreshService
+  ) {}
 
   ngOnInit(): void {
     this.loadLiveData();
@@ -73,12 +94,51 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.loadLiveData();
       }
     }, 5000);
+
+    this.refreshSub = this.refreshService.refresh$.subscribe(() => {
+      this.loadLiveData();
+    });
   }
 
   ngOnDestroy(): void {
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
+    if (this.refreshInterval) clearInterval(this.refreshInterval);
+    if (this.refreshSub) this.refreshSub.unsubscribe();
+  }
+
+  prevTopBlockedPage(): void {
+    if (this.topBlockedPage() > 1) {
+      this.topBlockedPage.update(p => p - 1);
     }
+  }
+
+  nextTopBlockedPage(): void {
+    if (this.topBlockedPage() < this.totalTopBlockedPages()) {
+      this.topBlockedPage.update(p => p + 1);
+    }
+  }
+
+  getCategoryColor(category: string): string {
+    const cat = (category || '').toUpperCase();
+    if (cat.includes('MALWARE') || cat.includes('PHISH') || cat.includes('SECURITY') || cat.includes('THREAT')) return 'bg-rose-500';
+    if (cat.includes('AD') || cat.includes('PROMO')) return 'bg-[rgb(230,130,16)]';
+    if (cat.includes('TRACK') || cat.includes('ANALYTICS') || cat.includes('TELEMETRY')) return 'bg-indigo-500';
+    if (cat.includes('CRYPTO') || cat.includes('MINING')) return 'bg-cyan-500';
+    if (cat.includes('GAMBLING') || cat.includes('BET')) return 'bg-amber-400';
+    if (cat.includes('ADULT') || cat.includes('PORN')) return 'bg-purple-500';
+    if (cat.includes('SOCIAL')) return 'bg-blue-500';
+    return 'bg-emerald-500';
+  }
+
+  getCategoryTextColor(category: string): string {
+    const cat = (category || '').toUpperCase();
+    if (cat.includes('MALWARE') || cat.includes('PHISH') || cat.includes('SECURITY') || cat.includes('THREAT')) return 'text-rose-400';
+    if (cat.includes('AD') || cat.includes('PROMO')) return 'text-[rgb(230,130,16)]';
+    if (cat.includes('TRACK') || cat.includes('ANALYTICS') || cat.includes('TELEMETRY')) return 'text-indigo-400';
+    if (cat.includes('CRYPTO') || cat.includes('MINING')) return 'text-cyan-400';
+    if (cat.includes('GAMBLING') || cat.includes('BET')) return 'text-amber-400';
+    if (cat.includes('ADULT') || cat.includes('PORN')) return 'text-purple-400';
+    if (cat.includes('SOCIAL')) return 'text-blue-400';
+    return 'text-emerald-400';
   }
 
   onRangeChange(range: string): void {

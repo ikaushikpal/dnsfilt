@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, TopClient, TrafficPoint, CategoryBreakdown, TopBlockedDomain } from '../../services/api.service';
+import { RefreshService } from '../../services/refresh.service';
 
 @Component({
   selector: 'app-clients',
@@ -86,10 +87,16 @@ export class ClientsComponent implements OnInit {
     return [];
   });
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private refreshService: RefreshService
+  ) {}
 
   ngOnInit(): void {
     this.loadLiveData();
+    this.refreshService.refresh$.subscribe(() => {
+      this.loadLiveData();
+    });
   }
 
   loadLiveData(): void {

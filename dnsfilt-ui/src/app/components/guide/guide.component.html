@@ -1,0 +1,250 @@
+<section class="space-y-10 font-sans max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
+  
+  <!-- Header -->
+  <div class="text-center space-y-3">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-900 border border-[rgb(230,130,16)]/40 text-[rgb(230,130,16)] text-xs font-mono font-bold">
+      <i class="fa-solid fa-sliders text-xs"></i> Device Configuration
+    </div>
+    <h1 class="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tight">
+      How to Connect to <span class="text-[rgb(230,130,16)]">DNSFilt</span>
+    </h1>
+    <p class="text-stone-400 text-sm sm:text-base max-w-2xl mx-auto font-sans leading-relaxed">
+      Configure your operating system, mobile device, or home router to route all DNS queries through DNSFilt for high-speed resolution and threat filtering.
+    </p>
+  </div>
+
+  <!-- DNS Server IP Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono">
+    
+    <!-- Primary DNS -->
+    <div class="bg-stone-900/80 border border-stone-800 p-6 sm:p-8 rounded-2xl space-y-4 shadow-xl">
+      <div class="flex justify-between items-center">
+        <span class="text-stone-400 text-xs uppercase tracking-wider font-bold">Primary DNS Server</span>
+        <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold">ACTIVE</span>
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-3xl sm:text-4xl font-bold font-mono text-[rgb(230,130,16)]">130.210.34.226</h2>
+        <button 
+          (click)="copyText('130.210.34.226', 'primary')" 
+          class="bg-stone-950 hover:bg-stone-800 border border-stone-700 text-xs px-3.5 py-2 rounded-xl text-stone-200 hover:text-white transition flex items-center gap-1.5 active:scale-95">
+          <i [class]="copied() === 'primary' ? 'fa-solid fa-check text-emerald-400' : 'fa-regular fa-copy'"></i>
+          <span>{{ copied() === 'primary' ? 'Copied' : 'Copy' }}</span>
+        </button>
+      </div>
+      <p class="text-stone-400 text-xs font-sans">
+        Points directly to your dedicated public <code class="text-[rgb(230,130,16)] font-mono">dnsfilt-resolver</code> security cluster.
+      </p>
+    </div>
+
+    <!-- Secondary Fallback DNS -->
+    <div class="bg-stone-900/80 border border-stone-800 p-6 sm:p-8 rounded-2xl space-y-4 shadow-xl">
+      <div class="flex justify-between items-center">
+        <span class="text-stone-400 text-xs uppercase tracking-wider font-bold">Secondary DNS (Fallback)</span>
+        <span class="bg-stone-950 text-stone-400 border border-stone-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold">BACKUP</span>
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <h2 class="text-3xl sm:text-4xl font-bold font-mono text-stone-200">1.1.1.1</h2>
+        <button 
+          (click)="copyText('1.1.1.1', 'secondary')" 
+          class="bg-stone-950 hover:bg-stone-800 border border-stone-700 text-xs px-3.5 py-2 rounded-xl text-stone-200 hover:text-white transition flex items-center gap-1.5 active:scale-95">
+          <i [class]="copied() === 'secondary' ? 'fa-solid fa-check text-emerald-400' : 'fa-regular fa-copy'"></i>
+          <span>{{ copied() === 'secondary' ? 'Copied' : 'Copy' }}</span>
+        </button>
+      </div>
+      <p class="text-stone-400 text-xs font-sans">
+        Standard public DNS fallback if the primary server is unreachable.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- OS Platform Switcher -->
+  <div class="bg-stone-900/60 border border-stone-800 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl">
+    
+    <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 border-b border-stone-800 pb-6">
+      <button 
+        (click)="selectedOs.set('macos')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'macos'"
+        [class.text-stone-950]="selectedOs() === 'macos'"
+        [class.font-bold]="selectedOs() === 'macos'"
+        [class.text-stone-300]="selectedOs() !== 'macos'"
+        [class.bg-stone-950]="selectedOs() !== 'macos'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-brands fa-apple text-base"></i> macOS
+      </button>
+
+      <button 
+        (click)="selectedOs.set('windows')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'windows'"
+        [class.text-stone-950]="selectedOs() === 'windows'"
+        [class.font-bold]="selectedOs() === 'windows'"
+        [class.text-stone-300]="selectedOs() !== 'windows'"
+        [class.bg-stone-950]="selectedOs() !== 'windows'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-brands fa-windows text-base text-sky-400"></i> Windows 11 / 10
+      </button>
+
+      <button 
+        (click)="selectedOs.set('linux')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'linux'"
+        [class.text-stone-950]="selectedOs() === 'linux'"
+        [class.font-bold]="selectedOs() === 'linux'"
+        [class.text-stone-300]="selectedOs() !== 'linux'"
+        [class.bg-stone-950]="selectedOs() !== 'linux'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-brands fa-linux text-base"></i> Linux
+      </button>
+
+      <button 
+        (click)="selectedOs.set('ios')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'ios'"
+        [class.text-stone-950]="selectedOs() === 'ios'"
+        [class.font-bold]="selectedOs() === 'ios'"
+        [class.text-stone-300]="selectedOs() !== 'ios'"
+        [class.bg-stone-950]="selectedOs() !== 'ios'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-solid fa-mobile-screen text-base"></i> iOS / iPadOS
+      </button>
+
+      <button 
+        (click)="selectedOs.set('android')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'android'"
+        [class.text-stone-950]="selectedOs() === 'android'"
+        [class.font-bold]="selectedOs() === 'android'"
+        [class.text-stone-300]="selectedOs() !== 'android'"
+        [class.bg-stone-950]="selectedOs() !== 'android'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-brands fa-android text-base text-emerald-400"></i> Android
+      </button>
+
+      <button 
+        (click)="selectedOs.set('router')"
+        [class.bg-[rgb(230,130,16)]]="selectedOs() === 'router'"
+        [class.text-stone-950]="selectedOs() === 'router'"
+        [class.font-bold]="selectedOs() === 'router'"
+        [class.text-stone-300]="selectedOs() !== 'router'"
+        [class.bg-stone-950]="selectedOs() !== 'router'"
+        class="px-4 py-2.5 rounded-xl border border-stone-800 font-mono text-xs sm:text-sm transition flex items-center gap-2 active:scale-95">
+        <i class="fa-solid fa-wifi text-base"></i> Home Router
+      </button>
+    </div>
+
+    <!-- Platform Instructions Content -->
+    <div class="space-y-6">
+      
+      <!-- macOS -->
+      @if (selectedOs() === 'macos') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-brands fa-apple text-[rgb(230,130,16)]"></i> macOS (Ventura, Sonoma, Sequoia & later)
+          </h3>
+          <ol class="space-y-3 text-sm text-stone-300 font-sans list-decimal list-inside leading-relaxed">
+            <li>Open <strong class="text-white">Apple Menu &rarr; System Settings</strong>.</li>
+            <li>Select <strong class="text-white">Network</strong> from the left sidebar.</li>
+            <li>Click on your active connection (<strong class="text-white">Wi-Fi</strong> or <strong class="text-white">Ethernet</strong>), then click <strong class="text-white">Details...</strong>.</li>
+            <li>Navigate to the <strong class="text-white">DNS</strong> tab in the sidebar.</li>
+            <li>Under DNS Servers, click the <strong class="text-white text-[rgb(230,130,16)]">+ (Add)</strong> button.</li>
+            <li>Enter <code class="text-[rgb(230,130,16)] font-mono font-bold bg-stone-950 px-2 py-0.5 rounded border border-stone-800">130.210.34.226</code> as primary DNS.</li>
+            <li>Optionally add <code class="text-stone-200 font-mono bg-stone-950 px-2 py-0.5 rounded border border-stone-800">1.1.1.1</code> as backup.</li>
+            <li>Click <strong class="text-white">OK</strong>, then <strong class="text-white">Apply</strong>.</li>
+          </ol>
+        </div>
+      }
+
+      <!-- Windows -->
+      @if (selectedOs() === 'windows') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-brands fa-windows text-sky-400"></i> Windows 11 / Windows 10
+          </h3>
+          <ol class="space-y-3 text-sm text-stone-300 font-sans list-decimal list-inside leading-relaxed">
+            <li>Open <strong class="text-white">Settings</strong> (<kbd class="bg-stone-950 border border-stone-800 px-2 py-0.5 rounded text-xs">Win + I</kbd>).</li>
+            <li>Go to <strong class="text-white">Network & Internet</strong> &rarr; Select <strong class="text-white">Wi-Fi</strong> or <strong class="text-white">Ethernet</strong>.</li>
+            <li>Click on <strong class="text-white">Hardware properties</strong>.</li>
+            <li>Next to <strong class="text-white">DNS server assignment</strong>, click <strong class="text-white">Edit</strong>.</li>
+            <li>Change from <strong class="text-white">Automatic (DHCP)</strong> to <strong class="text-white">Manual</strong> and toggle <strong class="text-white">IPv4</strong> to <strong class="text-emerald-400">On</strong>.</li>
+            <li>In <strong class="text-white">Preferred DNS</strong>, type: <code class="text-[rgb(230,130,16)] font-mono font-bold bg-stone-950 px-2 py-0.5 rounded border border-stone-800">130.210.34.226</code></li>
+            <li>In <strong class="text-white">Alternate DNS</strong>, type: <code class="text-stone-200 font-mono bg-stone-950 px-2 py-0.5 rounded border border-stone-800">1.1.1.1</code></li>
+            <li>Click <strong class="text-white">Save</strong>.</li>
+          </ol>
+        </div>
+      }
+
+      <!-- Linux -->
+      @if (selectedOs() === 'linux') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-brands fa-linux text-emerald-400"></i> Linux (systemd-resolved / resolv.conf)
+          </h3>
+          <div class="space-y-3 text-sm text-stone-300 font-sans">
+            <p>Edit your systemd-resolved configuration:</p>
+            <div class="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-xs text-stone-200 space-y-2">
+              <div class="text-stone-500"># Edit /etc/systemd/resolved.conf</div>
+              <div class="text-[rgb(230,130,16)]">sudo nano /etc/systemd/resolved.conf</div>
+              <div class="text-stone-400 pt-2"># Set DNS line:</div>
+              <div class="text-emerald-400 font-bold">DNS=130.210.34.226 1.1.1.1</div>
+              <div class="text-stone-400 pt-2"># Restart systemd-resolved:</div>
+              <div class="text-sky-400">sudo systemctl restart systemd-resolved</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- iOS / iPadOS -->
+      @if (selectedOs() === 'ios') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-mobile-screen text-[rgb(230,130,16)]"></i> iPhone & iPad (iOS / iPadOS)
+          </h3>
+          <ol class="space-y-3 text-sm text-stone-300 font-sans list-decimal list-inside leading-relaxed">
+            <li>Open <strong class="text-white">Settings &rarr; Wi-Fi</strong>.</li>
+            <li>Tap the <strong class="text-white text-sky-400">ⓘ (info)</strong> icon next to your connected Wi-Fi network.</li>
+            <li>Scroll down and tap <strong class="text-white">Configure DNS</strong>.</li>
+            <li>Select <strong class="text-white">Manual</strong>.</li>
+            <li>Tap <strong class="text-white text-[rgb(230,130,16)]">+ Add Server</strong>.</li>
+            <li>Enter <code class="text-[rgb(230,130,16)] font-mono font-bold bg-stone-950 px-2 py-0.5 rounded border border-stone-800">130.210.34.226</code></li>
+            <li>Tap <strong class="text-white">Save</strong> in the top-right corner.</li>
+          </ol>
+        </div>
+      }
+
+      <!-- Android -->
+      @if (selectedOs() === 'android') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-brands fa-android text-emerald-400"></i> Android (Wi-Fi Settings)
+          </h3>
+          <ol class="space-y-3 text-sm text-stone-300 font-sans list-decimal list-inside leading-relaxed">
+            <li>Open <strong class="text-white">Settings &rarr; Network & internet &rarr; Internet</strong>.</li>
+            <li>Tap the <strong class="text-white">Settings (gear)</strong> icon next to your connected Wi-Fi network.</li>
+            <li>Tap the <strong class="text-white">Edit / Pencil</strong> icon (or Advanced Options).</li>
+            <li>Change <strong class="text-white">IP settings</strong> from <strong class="text-white">DHCP</strong> to <strong class="text-white">Static</strong>.</li>
+            <li>In <strong class="text-white">DNS 1</strong>, enter <code class="text-[rgb(230,130,16)] font-mono font-bold bg-stone-950 px-2 py-0.5 rounded border border-stone-800">130.210.34.226</code></li>
+            <li>In <strong class="text-white">DNS 2</strong>, enter <code class="text-stone-200 font-mono bg-stone-950 px-2 py-0.5 rounded border border-stone-800">1.1.1.1</code></li>
+            <li>Tap <strong class="text-white">Save</strong>.</li>
+          </ol>
+        </div>
+      }
+
+      <!-- Router -->
+      @if (selectedOs() === 'router') {
+        <div class="space-y-4">
+          <h3 class="text-xl font-mono font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-wifi text-amber-400"></i> Home Router (Protect All Household Devices)
+          </h3>
+          <ol class="space-y-3 text-sm text-stone-300 font-sans list-decimal list-inside leading-relaxed">
+            <li>Open a browser and log in to your router gateway (typically <code class="text-stone-200 font-mono">192.168.1.1</code> or <code class="text-stone-200 font-mono">192.168.0.1</code>).</li>
+            <li>Find the <strong class="text-white">WAN / Internet</strong> or <strong class="text-white">DHCP Server</strong> settings page.</li>
+            <li>Locate the <strong class="text-white">DNS Server</strong> field.</li>
+            <li>Set Primary DNS to <code class="text-[rgb(230,130,16)] font-mono font-bold bg-stone-950 px-2 py-0.5 rounded border border-stone-800">130.210.34.226</code></li>
+            <li>Set Secondary DNS to <code class="text-stone-200 font-mono bg-stone-950 px-2 py-0.5 rounded border border-stone-800">1.1.1.1</code></li>
+            <li>Click <strong class="text-white">Save / Apply</strong>. All devices on your network will automatically resolve through DNSFilt!</li>
+          </ol>
+        </div>
+      }
+
+    </div>
+
+  </div>
+
+</section>

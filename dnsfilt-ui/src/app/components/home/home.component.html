@@ -1,35 +1,35 @@
 <div class="w-full font-sans overflow-x-hidden space-y-0">
-  
+
   <!-- 1. HERO SECTION (100vw Full Width & 100vh Viewport Height, home.jpg with Badge, Title, and Tagline on top) -->
-  <section class="relative w-full h-[calc(100vh-60px)] min-h-[550px] bg-stone-950 flex items-center justify-center overflow-hidden">
+  <section
+    class="relative w-full h-[calc(100vh-60px)] min-h-[550px] bg-stone-950 flex items-center justify-center overflow-hidden">
     <!-- home.jpg Background Image -->
-    <img 
-      src="/images/home.jpg" 
-      alt="DNSFilt Hero" 
+    <img src="/images/home.jpg" alt="DNSFilt Hero"
       class="w-full h-full object-cover object-center filter brightness-[0.55] contrast-[1.2]">
-    
+
     <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-stone-950/60"></div>
 
     <!-- Overlay Content Directly on home.jpg Image -->
     <div class="absolute z-10 p-6 sm:p-12 text-center space-y-6 max-w-4xl">
-      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-950/80 border border-[rgb(230,130,16)]/60 text-[rgb(230,130,16)] text-xs sm:text-sm font-mono font-bold backdrop-blur-md shadow-2xl">
-        <i class="fa-solid fa-bolt text-xs"></i> High-Performance Security DNS Engine
-      </div>
-
       <h1 class="text-5xl sm:text-7xl lg:text-8xl font-mono font-bold tracking-tight text-white drop-shadow-2xl">
         <span class="text-[rgb(230,130,16)]">DNS</span>filt
       </h1>
 
       <p class="text-xl sm:text-3xl font-mono font-semibold text-stone-100 leading-snug drop-shadow-lg">
-        Next-Generation Ultra-Fast Security DNS Resolver Architecture
+        Next-Gen Ultra-Fast Security DNS Resolver
       </p>
 
-      <div class="pt-4 flex justify-center">
-        <button 
-          (click)="scrollToDnsGuide()" 
+      <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
+        <button (click)="scrollToDnsGuide()"
           class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-mono font-bold text-sm px-8 py-3.5 rounded-xl shadow-2xl transition transform hover:scale-105 flex items-center gap-2.5">
-          <span>Explore Setup Guide</span>
+          <span>Connect Device</span>
           <i class="fa-solid fa-chevron-down text-xs"></i>
+        </button>
+
+        <button (click)="navigateToGuide()"
+          class="bg-stone-900/90 hover:bg-stone-800 border border-stone-700 text-stone-200 hover:text-white font-mono font-bold text-sm px-7 py-3.5 rounded-xl shadow-2xl transition transform hover:scale-105 flex items-center gap-2 backdrop-blur-md">
+          <i class="fa-solid fa-sliders text-[rgb(230,130,16)]"></i>
+          <span>Setup Guide</span>
         </button>
       </div>
     </div>
@@ -38,58 +38,79 @@
   <!-- 2. ABOUT SECTION (Appears Immediately After home.jpg Image) -->
   <section class="w-full bg-stone-950 py-16 px-4 sm:px-8 border-b border-stone-800/80">
     <div class="max-w-6xl mx-auto space-y-6 text-center sm:text-left">
-      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-900 border border-[rgb(230,130,16)]/40 text-[rgb(230,130,16)] text-xs font-mono font-bold">
+      <div
+        class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-stone-900 border border-[rgb(230,130,16)]/40 text-[rgb(230,130,16)] text-xs font-mono font-bold">
         <i class="fa-solid fa-circle-info text-xs"></i> About DNSFilt
       </div>
 
       <h2 class="text-3xl sm:text-4xl font-mono font-bold text-white">
-        About DNSFilt Architecture
+        A Security Layer at the DNS Level
       </h2>
 
       <p class="text-stone-300 text-base sm:text-lg leading-relaxed max-w-4xl font-sans">
-        DNSFilt is an open-source, high-performance security DNS resolver built on <strong class="text-[rgb(230,130,16)] font-mono">Java 21 Virtual Threads</strong>, Caffeine L1 cache, Aiven Valkey Redis L2 storage, and real-time streaming Kafka query audit logging. Mitigates malware, phishing, and bad actors at the DNS layer before network sockets ever open.
+        DNSFilt is an open-source, high-performance security DNS resolver designed to protect users and networks at one
+        of the earliest points of network communication: the DNS request.<br><br>
+        <strong class="text-[rgb(230,130,16)] font-mono">The goal is simple: fast DNS resolution with security built
+          directly into the resolution path.</strong>
       </p>
     </div>
   </section>
 
-  <!-- 3. MACHINE DNS CONFIGURATION GUIDE (Scrolled down from Explore button) -->
+  <!-- 3. CONNECT TO DNSFILT SECTION -->
   <section id="dns-guide-section" class="w-full bg-stone-950 py-16 px-4 sm:px-8 border-b border-stone-800/80">
-    <div class="max-w-7xl mx-auto bg-gradient-to-r from-stone-900 via-stone-900/90 to-stone-950 border border-[rgb(230,130,16)]/30 rounded-3xl p-8 sm:p-12 space-y-8 shadow-2xl">
-      
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-800 pb-6">
+    <div
+      class="max-w-7xl mx-auto bg-gradient-to-r from-stone-900 via-stone-900/90 to-stone-950 border border-[rgb(230,130,16)]/30 rounded-3xl p-8 sm:p-12 space-y-8 shadow-2xl">
+
+      <div
+        class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-800 pb-6">
         <div>
           <h3 class="text-2xl sm:text-3xl font-mono font-bold text-white flex items-center gap-3">
-            <i class="fa-solid fa-sliders text-[rgb(230,130,16)]"></i> Machine DNS Configuration Guide
+            <i class="fa-solid fa-sliders text-[rgb(230,130,16)]"></i> Connect to DNSFilt
           </h3>
           <p class="text-stone-300 text-sm font-sans mt-1">
-            Configure your local machine or router network settings to route all DNS traffic through DNSFilt
+            Route your device or network DNS traffic through DNSFilt.
           </p>
         </div>
 
-        <div class="bg-stone-950 border border-stone-800 px-4 py-2 rounded-xl text-xs font-mono text-[rgb(230,130,16)] font-bold flex items-center gap-2 shadow-lg">
-          <i class="fa-solid fa-globe"></i> Resolver Hostname: dnsfilt.mooo.com
+        <div class="flex flex-wrap items-center gap-3">
+          <div
+            class="bg-stone-950 border border-stone-800 px-4 py-2 rounded-xl text-xs font-mono text-[rgb(230,130,16)] font-bold flex items-center gap-2 shadow-lg">
+            <i class="fa-solid fa-globe"></i> Resolver Hostname: dnsfilt.mooo.com
+          </div>
+
+          <button (click)="navigateToGuide()"
+            class="bg-[rgb(230,130,16)] hover:bg-[rgb(205,110,10)] text-stone-950 font-mono font-bold text-xs px-5 py-2 rounded-xl shadow-lg transition flex items-center gap-2 active:scale-95">
+            <i class="fa-solid fa-book-open text-xs"></i>
+            <span>Setup Guide</span>
+          </button>
         </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
-        
+
         <!-- Primary DNS Card -->
-        <div class="bg-stone-950 border border-stone-800 p-6 rounded-2xl space-y-3 shadow-xl">
+        <div
+          class="bg-stone-950 border border-stone-800 p-6 rounded-2xl space-y-3 shadow-xl hover:border-[rgb(230,130,16)]/40 transition">
           <div class="flex justify-between items-center">
             <span class="text-stone-400 text-xs uppercase tracking-wider font-bold">Primary DNS Server</span>
-            <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold">ACTIVE</span>
+            <span
+              class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] px-2.5 py-0.5 rounded-full font-bold">ACTIVE</span>
           </div>
           <h4 class="text-3xl font-bold text-white font-mono text-[rgb(230,130,16)]">130.210.34.226</h4>
           <p class="text-stone-400 text-xs font-sans">
-            Points directly to the public <code class="text-[rgb(230,130,16)] font-mono">dnsfilt-resolver</code> security cluster.
+            Points directly to the public <code class="text-[rgb(230,130,16)] font-mono">dnsfilt-resolver</code>
+            security cluster.
           </p>
         </div>
 
         <!-- Secondary DNS Card -->
-        <div class="bg-stone-950 border border-stone-800 p-6 rounded-2xl space-y-3 shadow-xl">
+        <div
+          class="bg-stone-950 border border-stone-800 p-6 rounded-2xl space-y-3 shadow-xl hover:border-stone-700 transition">
           <div class="flex justify-between items-center">
-            <span class="text-stone-400 text-xs uppercase tracking-wider font-bold">Secondary DNS Server (Fallback)</span>
-            <span class="bg-stone-900 text-stone-300 border border-stone-800 text-[10px] px-2.5 py-0.5 rounded-full">FALLBACK</span>
+            <span class="text-stone-400 text-xs uppercase tracking-wider font-bold">Secondary DNS Server
+              (Fallback)</span>
+            <span
+              class="bg-stone-900 text-stone-300 border border-stone-800 text-[10px] px-2.5 py-0.5 rounded-full">FALLBACK</span>
           </div>
           <h4 class="text-3xl font-bold text-white font-mono text-stone-200">1.1.1.1</h4>
           <p class="text-stone-400 text-xs font-sans">
@@ -99,196 +120,421 @@
 
       </div>
 
-      <!-- OS Config Steps -->
-      <div class="bg-stone-950/70 border border-stone-800 p-4 sm:p-6 rounded-2xl text-xs font-mono text-stone-300 space-y-3 overflow-hidden">
-        <span class="text-[rgb(230,130,16)] font-bold text-sm flex items-center gap-2">
-          <i class="fa-solid fa-circle-info"></i> How to apply on your Operating System:
-        </span>
-        <ul class="space-y-3 text-xs text-stone-300 font-sans pt-1">
-          <li class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-            <strong class="text-white font-mono shrink-0">macOS:</strong> 
-            <span class="break-words">System Settings &rarr; Network &rarr; Advanced &rarr; DNS &rarr; Add <code class="text-[rgb(230,130,16)] font-mono bg-stone-900 px-2 py-0.5 rounded break-all inline-block mt-1 sm:mt-0">130.210.34.226</code></span>
-          </li>
-          <li class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-            <strong class="text-white font-mono shrink-0">Windows 11/10:</strong> 
-            <span class="break-words">Settings &rarr; Network & Internet &rarr; Wi-Fi / Ethernet &rarr; DNS Server Assignment &rarr; Manual IP &rarr; <code class="text-[rgb(230,130,16)] font-mono bg-stone-900 px-2 py-0.5 rounded break-all inline-block mt-1 sm:mt-0">130.210.34.226</code></span>
-          </li>
-          <li class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-            <strong class="text-white font-mono shrink-0">Linux (systemd-resolved):</strong> 
-            <span class="break-words">Edit <code class="text-stone-200 font-mono break-all inline-block mt-1 sm:mt-0">/etc/systemd/resolved.conf</code> &rarr; <code class="text-[rgb(230,130,16)] font-mono bg-stone-900 px-2 py-0.5 rounded break-all inline-block mt-1 sm:mt-0">DNS=130.210.34.226 1.1.1.1</code></span>
-          </li>
-        </ul>
+    </div>
+  </section>
+
+  <!-- 4. ARCHITECTURE FLOW DIAGRAM SECTION (Colorful, Visual, FontAwesome Icons) -->
+  <section class="w-full bg-[#0b0f17] py-20 px-4 sm:px-8 border-b border-stone-800/80">
+    <div class="max-w-7xl mx-auto space-y-10">
+
+      <div class="text-center space-y-2">
+        <h2 class="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tight">
+          Built for Speed and Scale
+        </h2>
+        <p class="text-stone-400 text-sm sm:text-base font-sans max-w-2xl mx-auto">
+          Designed with a cache-first, high-concurrency architecture for fast and scalable DNS resolution.
+        </p>
+      </div>
+
+      <!-- Flow Pipeline Diagram Container -->
+      <div class="bg-stone-950/90 border border-stone-800/90 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-md">
+
+        <!-- Desktop Horizontal Pipeline / Mobile Vertical Flow -->
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-2">
+
+          <!-- Node 1: Client -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-sky-950/60 to-stone-900/90 border border-sky-500/40 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-sky-500/20 text-sky-400 border border-sky-400/30 flex items-center justify-center text-xl shadow-inner group-hover:bg-sky-500 group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-laptop"></i>
+            </div>
+            <div>
+              <span class="text-sky-400 font-mono font-bold text-sm block">Client</span>
+              <span class="text-stone-400 text-[11px] font-sans">Browser / OS Request</span>
+            </div>
+          </div>
+
+          <!-- Arrow 1 -->
+          <div
+            class="text-stone-600 lg:text-stone-500 flex items-center justify-center text-lg lg:text-xl py-1 lg:py-0 lg:px-2">
+            <i class="fa-solid fa-arrow-down lg:hidden text-[rgb(230,130,16)]"></i>
+            <i class="fa-solid fa-arrow-right hidden lg:block text-[rgb(230,130,16)]"></i>
+          </div>
+
+          <!-- Node 2: DNSFilt -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-amber-950/60 to-stone-900/90 border border-[rgb(230,130,16)]/50 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border border-[rgb(230,130,16)]/40 flex items-center justify-center text-xl shadow-inner group-hover:bg-[rgb(230,130,16)] group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+              <span class="text-[rgb(230,130,16)] font-mono font-bold text-sm block">DNSFilt</span>
+              <span class="text-stone-400 text-[11px] font-sans">Java 21 UDP Gateway</span>
+            </div>
+          </div>
+
+          <!-- Arrow 2 -->
+          <div
+            class="text-stone-600 lg:text-stone-500 flex items-center justify-center text-lg lg:text-xl py-1 lg:py-0 lg:px-2">
+            <i class="fa-solid fa-arrow-down lg:hidden text-rose-400"></i>
+            <i class="fa-solid fa-arrow-right hidden lg:block text-rose-400"></i>
+          </div>
+
+          <!-- Node 3: Security Check -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-rose-950/60 to-stone-900/90 border border-rose-500/40 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-rose-500/20 text-rose-400 border border-rose-400/30 flex items-center justify-center text-xl shadow-inner group-hover:bg-rose-500 group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-shield-virus"></i>
+            </div>
+            <div>
+              <span class="text-rose-400 font-mono font-bold text-sm block">Security Check</span>
+              <span class="text-stone-400 text-[11px] font-sans">Threat & Blocklists</span>
+            </div>
+          </div>
+
+          <!-- Arrow 3 -->
+          <div
+            class="text-stone-600 lg:text-stone-500 flex items-center justify-center text-lg lg:text-xl py-1 lg:py-0 lg:px-2">
+            <i class="fa-solid fa-arrow-down lg:hidden text-emerald-400"></i>
+            <i class="fa-solid fa-arrow-right hidden lg:block text-emerald-400"></i>
+          </div>
+
+          <!-- Node 4: Cache -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-emerald-950/60 to-stone-900/90 border border-emerald-500/40 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 flex items-center justify-center text-xl shadow-inner group-hover:bg-emerald-500 group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-gauge-high"></i>
+            </div>
+            <div>
+              <span class="text-emerald-400 font-mono font-bold text-sm block">Cache</span>
+              <span class="text-stone-400 text-[11px] font-sans">L1 Caffeine + L2 Redis</span>
+            </div>
+          </div>
+
+          <!-- Arrow 4 -->
+          <div
+            class="text-stone-600 lg:text-stone-500 flex items-center justify-center text-lg lg:text-xl py-1 lg:py-0 lg:px-2">
+            <i class="fa-solid fa-arrow-down lg:hidden text-violet-400"></i>
+            <i class="fa-solid fa-arrow-right hidden lg:block text-violet-400"></i>
+          </div>
+
+          <!-- Node 5: Upstream DNS -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-violet-950/60 to-stone-900/90 border border-violet-500/40 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-violet-500/20 text-violet-400 border border-violet-400/30 flex items-center justify-center text-xl shadow-inner group-hover:bg-violet-500 group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-cloud"></i>
+            </div>
+            <div>
+              <span class="text-violet-400 font-mono font-bold text-sm block">Upstream DNS</span>
+              <span class="text-stone-400 text-[11px] font-sans">Recursive Fallback</span>
+            </div>
+          </div>
+
+          <!-- Arrow 5 -->
+          <div
+            class="text-stone-600 lg:text-stone-500 flex items-center justify-center text-lg lg:text-xl py-1 lg:py-0 lg:px-2">
+            <i class="fa-solid fa-arrow-down lg:hidden text-emerald-400"></i>
+            <i class="fa-solid fa-arrow-right hidden lg:block text-emerald-400"></i>
+          </div>
+
+          <!-- Node 6: Response -->
+          <div
+            class="w-full lg:w-auto flex-1 bg-gradient-to-b from-teal-950/60 to-stone-900/90 border border-teal-500/40 p-5 rounded-2xl text-center space-y-3 shadow-lg hover:scale-105 transition transform group">
+            <div
+              class="w-12 h-12 mx-auto rounded-xl bg-teal-500/20 text-teal-400 border border-teal-400/30 flex items-center justify-center text-xl shadow-inner group-hover:bg-teal-500 group-hover:text-stone-950 transition">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+              <span class="text-teal-400 font-mono font-bold text-sm block">Response</span>
+              <span class="text-stone-400 text-[11px] font-sans">&lt; 1ms Clean Reply</span>
+            </div>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
   </section>
+  <!-- 6. PERFORMANCE SECTION (Modern Metric Telemetry HUD) -->
+  <section class="w-full bg-stone-950 py-20 px-4 sm:px-8 border-b border-stone-800/80">
+    <div class="max-w-7xl mx-auto space-y-12">
 
-  <!-- 4. CORE ENGINE FEATURES (Scroll Down Section with Micro-Animated Cards) -->
-  <section class="w-full bg-[#090c10] py-16 px-4 sm:px-8 border-b border-stone-800/80">
-    <div class="max-w-7xl mx-auto space-y-8">
-      <div class="text-center sm:text-left space-y-1">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[rgb(230,130,16)]">Architecture Performance</span>
-        <h2 class="text-3xl sm:text-4xl font-mono font-bold text-white flex items-center justify-center sm:justify-start gap-3">
-          <i class="fa-solid fa-cubes-stacked text-[rgb(230,130,16)]"></i> Core Engine Features
+      <div class="text-center sm:text-left space-y-2">
+        <h2 class="text-3xl sm:text-4xl font-mono font-bold text-white tracking-tight">
+          Built for High Throughput
         </h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        
-        <!-- Feature 1 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-[rgb(230,130,16)]/10 border border-[rgb(230,130,16)]/30 text-[rgb(230,130,16)] flex items-center justify-center text-2xl group-hover:scale-110 transition">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 font-mono">
+
+        <!-- Metric 1 -->
+        <div
+          class="bg-gradient-to-br from-stone-900/90 to-stone-950 border border-stone-800 p-6 sm:p-8 rounded-3xl space-y-2 shadow-2xl text-center sm:text-left hover:border-[rgb(230,130,16)]/40 transition">
+          <div class="text-3xl sm:text-5xl font-bold text-[rgb(230,130,16)]">50K+</div>
+          <div class="text-stone-300 text-xs sm:text-sm font-bold uppercase tracking-wider">Target Queries/sec</div>
+          <div class="text-stone-500 text-[11px] font-sans">Concurrent virtual thread execution</div>
+        </div>
+
+        <!-- Metric 2 -->
+        <div
+          class="bg-gradient-to-br from-stone-900/90 to-stone-950 border border-stone-800 p-6 sm:p-8 rounded-3xl space-y-2 shadow-2xl text-center sm:text-left hover:border-emerald-500/40 transition">
+          <div class="text-3xl sm:text-5xl font-bold text-emerald-400">&lt;1 ms</div>
+          <div class="text-stone-300 text-xs sm:text-sm font-bold uppercase tracking-wider">Cached Resolution</div>
+          <div class="text-stone-500 text-[11px] font-sans">Zero-allocation Caffeine lookup</div>
+        </div>
+
+        <!-- Metric 3 -->
+        <div
+          class="bg-gradient-to-br from-stone-900/90 to-stone-950 border border-stone-800 p-6 sm:p-8 rounded-3xl space-y-2 shadow-2xl text-center sm:text-left hover:border-sky-500/40 transition">
+          <div class="text-3xl sm:text-5xl font-bold text-sky-400">L1 + L2</div>
+          <div class="text-stone-300 text-xs sm:text-sm font-bold uppercase tracking-wider">Multi-Level Cache</div>
+          <div class="text-stone-500 text-[11px] font-sans">In-memory + Redis cluster backing</div>
+        </div>
+
+        <!-- Metric 4 -->
+        <div
+          class="bg-gradient-to-br from-stone-900/90 to-stone-950 border border-stone-800 p-6 sm:p-8 rounded-3xl space-y-2 shadow-2xl text-center sm:text-left hover:border-violet-500/40 transition">
+          <div class="text-3xl sm:text-5xl font-bold text-violet-400">Async</div>
+          <div class="text-stone-300 text-xs sm:text-sm font-bold uppercase tracking-wider">Telemetry Processing</div>
+          <div class="text-stone-500 text-[11px] font-sans">Non-blocking Kafka streaming</div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 7. SECURITY & OBSERVABILITY COMBINED BANNER (Distinct Visual Section) -->
+  <section class="w-full bg-[#080b11] py-20 px-4 sm:px-8 border-b border-stone-800/80">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-12">
+
+      <!-- Security Feature Block -->
+      <div
+        class="bg-stone-950/80 border border-stone-800/90 rounded-3xl p-8 sm:p-12 space-y-6 shadow-2xl flex flex-col justify-between">
+        <div class="space-y-4">
+          <div
+            class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-950/80 border border-rose-500/40 text-rose-400 text-xs font-mono font-bold">
+            <i class="fa-solid fa-shield-virus"></i> Security
+          </div>
+          <h2 class="text-2xl sm:text-4xl font-mono font-bold text-white tracking-tight">
+            Protection Before Connection
+          </h2>
+          <p class="text-stone-300 text-sm sm:text-base leading-relaxed font-sans">
+            DNSFilt helps protect users and networks by evaluating DNS requests before applications connect to external
+            destinations.
+          </p>
+        </div>
+
+        <!-- Checkpoints List -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs pt-4">
+          <div
+            class="flex items-center gap-2.5 bg-stone-900/90 border border-stone-800/80 px-3.5 py-2.5 rounded-xl text-stone-200">
+            <i class="fa-solid fa-check text-emerald-400 font-bold"></i>
+            <span>Malware Protection</span>
+          </div>
+          <div
+            class="flex items-center gap-2.5 bg-stone-900/90 border border-stone-800/80 px-3.5 py-2.5 rounded-xl text-stone-200">
+            <i class="fa-solid fa-check text-emerald-400 font-bold"></i>
+            <span>Phishing Protection</span>
+          </div>
+          <div
+            class="flex items-center gap-2.5 bg-stone-900/90 border border-stone-800/80 px-3.5 py-2.5 rounded-xl text-stone-200">
+            <i class="fa-solid fa-check text-emerald-400 font-bold"></i>
+            <span>Tracking Protection</span>
+          </div>
+          <div
+            class="flex items-center gap-2.5 bg-stone-900/90 border border-stone-800/80 px-3.5 py-2.5 rounded-xl text-stone-200">
+            <i class="fa-solid fa-check text-emerald-400 font-bold"></i>
+            <span>DNS Filtering</span>
+          </div>
+          <div
+            class="flex items-center gap-2.5 bg-stone-900/90 border border-stone-800/80 px-3.5 py-2.5 rounded-xl text-stone-200 sm:col-span-2">
+            <i class="fa-solid fa-check text-emerald-400 font-bold"></i>
+            <span>Query Auditing</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Observability Feature Block -->
+      <div
+        class="bg-gradient-to-br from-stone-950 via-stone-900/90 to-sky-950/40 border border-sky-500/30 rounded-3xl p-8 sm:p-12 space-y-6 shadow-2xl flex flex-col justify-between">
+        <div class="space-y-4">
+          <div
+            class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-950/80 border border-sky-500/40 text-sky-400 text-xs font-mono font-bold">
+            <i class="fa-solid fa-chart-line"></i> Observability
+          </div>
+          <h2 class="text-2xl sm:text-4xl font-mono font-bold text-white tracking-tight">
+            Real-Time DNS Intelligence
+          </h2>
+          <p class="text-stone-300 text-sm sm:text-base leading-relaxed font-sans">
+            Stream DNS activity to Kafka for monitoring, analytics, auditing, and security insights.
+          </p>
+        </div>
+
+        <!-- Telemetry Signal Box -->
+        <div class="bg-stone-950/90 border border-stone-800 rounded-2xl p-5 space-y-3 font-mono text-xs">
+          <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+            <span class="text-sky-400 flex items-center gap-2 font-bold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Kafka Telemetry Bus
+            </span>
+            <span class="text-stone-500 text-[10px]">Topic: dns-query-logs</span>
+          </div>
+          <div class="text-stone-400 text-xs font-sans leading-relaxed">
+            Full query event streaming without impacting client packet response latency.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 8. WHY DNSFILT? (NEW Highlighted Showcase Section) -->
+  <section class="w-full bg-stone-950 py-20 px-4 sm:px-8 border-b border-stone-800/80">
+    <div class="max-w-6xl mx-auto space-y-12">
+
+      <div class="text-center space-y-3">
+        <h2 class="text-3xl sm:text-5xl font-mono font-bold text-white tracking-tight">
+          Why DNSFilt?
+        </h2>
+      </div>
+
+      <!-- 4 Pillars Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 font-mono">
+
+        <!-- Pillar 1: Fast -->
+        <div
+          class="bg-stone-900/70 hover:bg-stone-900 border border-stone-800 hover:border-emerald-500/50 p-6 rounded-2xl space-y-3 transition transform hover:-translate-y-1 shadow-xl">
+          <div
+            class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-lg">
             <i class="fa-solid fa-bolt"></i>
           </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-[rgb(230,130,16)] transition">
-            Java 21 Virtual Threads
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            Concurrent processing of 50,000+ DNS queries per second using lightweight Virtual Threads with minimal memory footprint.
+          <h3 class="text-lg font-bold text-white">Fast</h3>
+          <p class="text-stone-400 text-xs font-sans leading-relaxed">
+            Low-latency, cache-first DNS resolution.
           </p>
         </div>
 
-        <!-- Feature 2 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 flex items-center justify-center text-2xl group-hover:scale-110 transition">
-            <i class="fa-solid fa-gauge-high"></i>
+        <!-- Pillar 2: Secure -->
+        <div
+          class="bg-stone-900/70 hover:bg-stone-900 border border-stone-800 hover:border-rose-500/50 p-6 rounded-2xl space-y-3 transition transform hover:-translate-y-1 shadow-xl">
+          <div
+            class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-shield-halved"></i>
           </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-emerald-400 transition">
-            Zero-Latency L1 Cache
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            Caffeine in-memory JVM cache delivers sub-millisecond (&lt; 0.1 ms) resolution for repeat hostname lookups.
+          <h3 class="text-lg font-bold text-white">Secure</h3>
+          <p class="text-stone-400 text-xs font-sans leading-relaxed">
+            Threat-aware DNS filtering.
           </p>
         </div>
 
-        <!-- Feature 3 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-[rgb(230,130,16)]/10 border border-[rgb(230,130,16)]/30 text-[rgb(230,130,16)] flex items-center justify-center text-2xl group-hover:scale-110 transition">
-            <i class="fa-solid fa-layer-group"></i>
-          </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-[rgb(230,130,16)] transition">
-            Aiven Valkey L2 Storage
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            TLS-encrypted cloud L2 cache backing store for distributed persistence across global datacenter clusters.
-          </p>
-        </div>
-
-        <!-- Feature 4 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-rose-400/10 border border-rose-400/30 text-rose-400 flex items-center justify-center text-2xl group-hover:scale-110 transition">
-            <i class="fa-solid fa-shield-virus"></i>
-          </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-rose-400 transition">
-            Real-Time Threat Block
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            Blocks malware, phishing, and ad-tracking domains instantly before network connections are ever established.
-          </p>
-        </div>
-
-        <!-- Feature 5 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-sky-400/10 border border-sky-400/30 text-sky-400 flex items-center justify-center text-2xl group-hover:scale-110 transition">
+        <!-- Pillar 3: Scalable -->
+        <div
+          class="bg-stone-900/70 hover:bg-stone-900 border border-stone-800 hover:border-sky-500/50 p-6 rounded-2xl space-y-3 transition transform hover:-translate-y-1 shadow-xl">
+          <div
+            class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center text-lg">
             <i class="fa-solid fa-network-wired"></i>
           </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-sky-400 transition">
-            Kafka Audit Telemetry
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            Asynchronous streaming of query audit logs to Aiven Kafka for live telemetry analytics without blocking responses.
+          <h3 class="text-lg font-bold text-white">Scalable</h3>
+          <p class="text-stone-400 text-xs font-sans leading-relaxed">
+            Designed for distributed deployments.
           </p>
         </div>
 
-        <!-- Feature 6 -->
-        <div class="bg-stone-900/80 border border-stone-800 p-7 rounded-2xl space-y-3.5 card-hover-animated group shadow-xl">
-          <div class="w-12 h-12 rounded-xl bg-[rgb(230,130,16)]/10 border border-[rgb(230,130,16)]/30 text-[rgb(230,130,16)] flex items-center justify-center text-2xl group-hover:scale-110 transition">
-            <i class="fa-solid fa-terminal"></i>
+        <!-- Pillar 4: Observable -->
+        <div
+          class="bg-stone-900/70 hover:bg-stone-900 border border-stone-800 hover:border-violet-500/50 p-6 rounded-2xl space-y-3 transition transform hover:-translate-y-1 shadow-xl">
+          <div
+            class="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/30 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-chart-pie"></i>
           </div>
-          <h3 class="text-xl font-mono font-bold text-white group-hover:text-[rgb(230,130,16)] transition">
-            Multi-OS Command Suite
-          </h3>
-          <p class="text-stone-300 text-sm leading-relaxed">
-            Native terminal commands for macOS, Linux, Windows PowerShell, and Windows CMD for A, AAAA, CNAME, MX, TXT lookups.
+          <h3 class="text-lg font-bold text-white">Observable</h3>
+          <p class="text-stone-400 text-xs font-sans leading-relaxed">
+            Real-time telemetry and auditing.
           </p>
         </div>
 
       </div>
+
     </div>
   </section>
 
-  <!-- 5. ABOUT THE AUTHOR SECTION (100vw Wallpaper Background about.jpg with Card Details) -->
-  <section class="relative w-full py-20 px-4 sm:px-8 overflow-hidden">
-    
+  <!-- 9. ABOUT THE AUTHOR SECTION (100vw Wallpaper Background about.jpg with Card Details) -->
+  <section id="about-author-section" class="relative w-full py-20 px-4 sm:px-8 overflow-hidden">
+
     <!-- 100vw Full Viewport Width Wallpaper Background (about.jpg) -->
     <div class="absolute inset-0 w-full h-full">
-      <img 
-        src="/images/about.jpg" 
-        alt="Author Background Wallpaper" 
+      <img src="/images/about.jpg" alt="Author Background Wallpaper"
         class="w-full h-full object-cover object-center filter brightness-[0.35] contrast-[1.2]">
       <div class="absolute inset-0 bg-stone-950/75 backdrop-blur-sm"></div>
     </div>
 
     <!-- Centered Card Container over 100vw Wallpaper -->
     <div class="relative z-10 max-w-5xl mx-auto space-y-8">
-      
+
       <div class="text-center sm:text-left space-y-1">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[rgb(230,130,16)]">Platform Architect</span>
-        <h3 class="text-3xl sm:text-4xl font-mono font-bold text-white flex items-center justify-center sm:justify-start gap-3">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[rgb(230,130,16)]">Platform
+          Architect</span>
+        <h3
+          class="text-3xl sm:text-4xl font-mono font-bold text-white flex items-center justify-center sm:justify-start gap-3">
           <i class="fa-solid fa-user-gear text-[rgb(230,130,16)]"></i> About the Author
         </h3>
       </div>
 
       <!-- Card Details Theme -->
-      <div class="bg-stone-950/85 border border-stone-800 p-8 sm:p-12 rounded-3xl space-y-8 shadow-2xl backdrop-blur-md">
-        
+      <div
+        class="bg-stone-950/85 border border-stone-800 p-8 sm:p-12 rounded-3xl space-y-8 shadow-2xl backdrop-blur-md">
+
         <div>
           <h4 class="text-3xl font-mono font-bold text-white flex flex-wrap items-center gap-3">
             Kaushik Pal
-            <span class="bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border border-[rgb(230,130,16)]/40 text-xs px-3 py-1 rounded-full font-mono font-normal">
-              Platform Lead Architect
+            <span
+              class="bg-[rgb(230,130,16)]/20 text-[rgb(230,130,16)] border border-[rgb(230,130,16)]/40 text-xs px-3 py-1 rounded-full font-mono font-normal">
+              Lead Software Developer · Platform Architect
             </span>
           </h4>
 
           <p class="text-stone-300 text-base sm:text-lg leading-relaxed font-sans mt-4">
-            Creator and lead engineer of <strong class="text-[rgb(230,130,16)] font-mono">DNSFilt</strong>. Passionate about low-latency distributed engines, high-concurrency Java microservices, network security, and state-of-the-art web architectures.
+            I build scalable, secure, and reliable software using Java, Spring Boot, Microservices, Cloud, Angular, and
+            AI.<br><br>
+            I'm passionate about distributed systems, high-performance engineering, network security, and turning
+            complex ideas into practical products.
           </p>
         </div>
 
         <!-- Contact & Social Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
-          
-          <a 
-            href="mailto:kaushikpal2014@gmail.com" 
+
+          <a href="mailto:iamkaushikpal2014@gmail.com"
             class="bg-stone-900/90 hover:bg-stone-800 border border-stone-800 hover:border-[rgb(230,130,16)]/60 text-stone-200 hover:text-[rgb(230,130,16)] p-4 rounded-xl transition flex items-center gap-3">
             <i class="fa-solid fa-envelope text-[rgb(230,130,16)] text-xl"></i>
             <div class="truncate">
               <span class="text-stone-500 text-[10px] block uppercase">Email Contact</span>
-              <span class="font-bold text-xs truncate">Email Kaushik</span>
+              <span class="font-bold text-xs truncate">iamkaushikpal2014&#64;gmail.com</span>
             </div>
           </a>
 
-          <a 
-            href="https://linkedin.com/in/iamkaushik2014" 
-            target="_blank" 
-            rel="noopener" 
+          <a href="https://www.linkedin.com/in/ikaushikpal" target="_blank" rel="noopener"
             class="bg-stone-900/90 hover:bg-stone-800 border border-stone-800 hover:border-[rgb(230,130,16)]/60 text-stone-200 hover:text-[rgb(230,130,16)] p-4 rounded-xl transition flex items-center gap-3">
             <i class="fa-brands fa-linkedin text-sky-400 text-xl"></i>
             <div class="truncate">
               <span class="text-stone-500 text-[10px] block uppercase">LinkedIn Profile</span>
-              <span class="font-bold text-xs truncate">iamkaushik2014</span>
+              <span class="font-bold text-xs truncate">ikaushikpal</span>
             </div>
           </a>
 
-          <a 
-            href="https://github.com/iamkaushik2014" 
-            target="_blank" 
-            rel="noopener" 
+          <a href="https://github.com/ikaushikpal" target="_blank" rel="noopener"
             class="bg-stone-900/90 hover:bg-stone-800 border border-stone-800 hover:border-[rgb(230,130,16)]/60 text-stone-200 hover:text-[rgb(230,130,16)] p-4 rounded-xl transition flex items-center gap-3">
             <i class="fa-brands fa-github text-white text-xl"></i>
             <div class="truncate">
-              <span class="text-stone-500 text-[10px] block uppercase">GitHub Repository</span>
-              <span class="font-bold text-xs truncate">iamkaushik2014</span>
+              <span class="text-stone-500 text-[10px] block uppercase">GitHub Profile</span>
+              <span class="font-bold text-xs truncate">ikaushikpal</span>
             </div>
           </a>
 

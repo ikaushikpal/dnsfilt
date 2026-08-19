@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, TopBlockedDomain, CategoryBreakdown, SummaryStats } from '../../services/api.service';
+import { RefreshService } from '../../services/refresh.service';
 
 @Component({
   selector: 'app-threats',
@@ -63,11 +64,17 @@ export class ThreatsComponent implements OnInit, OnDestroy {
     return a ? a.blockedQueries : 0;
   });
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private refreshService: RefreshService
+  ) {}
 
   ngOnInit(): void {
     this.loadData();
     this.refreshInterval = setInterval(() => this.loadData(), 4000);
+    this.refreshService.refresh$.subscribe(() => {
+      this.loadData();
+    });
   }
 
   ngOnDestroy(): void {

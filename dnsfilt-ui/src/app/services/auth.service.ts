@@ -55,6 +55,54 @@ export class AuthService {
     );
   }
 
+  /**
+   * Validates local tokens with the backend.
+   * If access token is expired, backend automatically uses refresh token to issue a new access token.
+   * If both are invalid/expired, clears session and triggers logout.
+   */
+  validateSession(): Observable<any> {
+    const accessToken = this.getToken();
+    const refreshToken = this.getRefreshToken();
+
+    if (!accessToken && !refreshToken) {
+      this.currentUserSubject.next(null);
+      return new Observable(obs => { obs.next(false); obs.complete(); });
+    }
+
+    return this.http.post<any>(`${this.apiBase}/validate`, { accessToken, refreshToken }).pipe(
+      tap(res => {
+        if (res && res.valid) {
+          if (isPlatformBrowser(this.platformId)) {
+            if (res.accessToken) localStorage.setItem('accessToken', res.accessToken);
+            if (res.refreshToken) localStorage.setItem('refreshToken', res.refreshToken);
+            if (res.username) localStorage.setItem('username', res.username);
+            if (res.role) localStorage.setItem('role', res.role);
+            this.currentUserSubject.next(res.username);
+          }
+        } else {
+          this.logout();
+        }
+      })
+    );
+  }
+
+  refreshToken(): Observable<any> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.logout();
+      return new Observable(obs => { obs.error(new Error('No refresh token')); });
+    }
+
+    return this.http.post<any>(`${this.apiBase}/refresh`, { refreshToken }).pipe(
+      tap(res => {
+        if (isPlatformBrowser(this.platformId) && res.accessToken) {
+          localStorage.setItem('accessToken', res.accessToken);
+          if (res.refreshToken) localStorage.setItem('refreshToken', res.refreshToken);
+        }
+      })
+    );
+  }
+
   changePassword(data: { oldPassword: string; newPassword: string }): Observable<any> {
     const token = this.getToken();
     const headers = new HttpHeaders({

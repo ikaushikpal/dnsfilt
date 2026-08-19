@@ -1,5 +1,5 @@
 <section class="space-y-10 font-sans max-w-7xl mx-auto px-4 sm:px-8 py-6">
-  
+
   <!-- Section Header -->
   <div>
     <h2 class="text-2xl font-mono font-bold text-white flex items-center gap-2">
@@ -15,9 +15,12 @@
     <h3 class="text-md font-mono font-bold text-[rgb(230,130,16)] flex items-center gap-2">
       <i class="fa-solid fa-globe"></i> How DNS Resolution Works
     </h3>
-    
+
     <p class="text-xs text-stone-300 leading-relaxed">
-      The Domain Name System (DNS) acts as the phonebook of the Internet. When you type a hostname like <code class="text-emerald-400 font-mono">google.com</code> into your browser or terminal, your system needs to translate that human-readable name into a machine-readable IP address (<code class="text-[rgb(230,130,16)] font-mono">142.250.146.101</code>).
+      The Domain Name System (DNS) acts as the phonebook of the Internet. When you type a hostname like <code
+        class="text-emerald-400 font-mono">google.com</code> into your browser or terminal, your system needs to
+      translate that human-readable name into a machine-readable IP address (<code
+        class="text-[rgb(230,130,16)] font-mono">142.250.146.101</code>).
     </p>
 
     <!-- Resolution Flow Diagram -->
@@ -31,7 +34,7 @@
           <span class="text-[rgb(230,130,16)] font-bold block text-sm">1. Client Request</span>
           <span class="text-[10px] text-stone-400 font-sans">UDP Packet on Port 2053</span>
         </div>
-        
+
         <div class="bg-stone-900 border border-emerald-900/80 p-3 rounded space-y-1">
           <span class="text-emerald-400 font-bold block text-sm">2. L1 Caffeine Cache</span>
           <span class="text-[10px] text-stone-400 font-sans">JVM Memory (&lt; 0.1ms Hit)</span>
@@ -50,7 +53,7 @@
     </div>
   </div>
 
-  <!-- 2. Why Use DNSFilt? -->
+  <!-- 3. Why Use DNSFilt? -->
   <div class="bg-stone-900/60 border border-stone-800 rounded-xl p-6 space-y-4 shadow-xl">
     <h3 class="text-md font-mono font-bold text-[rgb(230,130,16)] flex items-center gap-2">
       <i class="fa-solid fa-shield-halved"></i> Why Use DNSFilt?
@@ -62,7 +65,8 @@
           <i class="fa-solid fa-bolt text-[rgb(230,130,16)]"></i> High-Performance Java 21 Engine
         </h4>
         <p class="text-stone-400 leading-relaxed">
-          Built on Virtual Threads (Project Loom), handling 50,000+ concurrent DNS queries per second with minimal RAM overhead.
+          Built on Virtual Threads (Project Loom), handling 50,000+ concurrent DNS queries per second with minimal RAM
+          overhead.
         </p>
       </div>
 
@@ -71,7 +75,8 @@
           <i class="fa-solid fa-gauge-high text-emerald-400"></i> Dual-Tier Caching (L1 + L2)
         </h4>
         <p class="text-stone-400 leading-relaxed">
-          L1 JVM Caffeine Cache provides sub-millisecond (0 ms) responses for repeated lookups, backed by Aiven Valkey Redis cloud storage.
+          L1 JVM Caffeine Cache provides sub-millisecond (0 ms) responses for repeated lookups, backed by Aiven Valkey
+          Redis cloud storage.
         </p>
       </div>
 
@@ -114,12 +119,14 @@
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">A</td>
             <td class="py-3 px-4 text-stone-200">Address Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Maps a hostname to a 32-bit IPv4 address (e.g. 142.250.146.101).</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Maps a hostname to a 32-bit IPv4 address (e.g.
+              142.250.146.101).</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">AAAA</td>
             <td class="py-3 px-4 text-stone-200">IPv6 Address Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Maps a hostname to a 128-bit IPv6 address (e.g. 2607:f8b0::200e).</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Maps a hostname to a 128-bit IPv6 address (e.g.
+              2607:f8b0::200e).</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">CNAME</td>
@@ -129,32 +136,38 @@
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">MX</td>
             <td class="py-3 px-4 text-stone-200">Mail Exchange Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Directs email traffic to the specified mail server hosts.</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Directs email traffic to the specified mail server hosts.
+            </td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">TXT</td>
             <td class="py-3 px-4 text-stone-200">Text Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Stores arbitrary text, heavily used for SPF email security & domain verification.</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Stores arbitrary text, heavily used for SPF email security &
+              domain verification.</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">NS</td>
             <td class="py-3 px-4 text-stone-200">Name Server Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Delegates a DNS zone to use specific authoritative name servers.</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Delegates a DNS zone to use specific authoritative name
+              servers.</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">SOA</td>
             <td class="py-3 px-4 text-stone-200">Start of Authority Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Contains core administrative data about a DNS zone (serial, contact email, refresh timers).</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Contains core administrative data about a DNS zone (serial,
+              contact email, refresh timers).</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">PTR</td>
             <td class="py-3 px-4 text-stone-200">Pointer Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Used for Reverse DNS (rDNS) lookups to resolve an IP address to a domain.</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Used for Reverse DNS (rDNS) lookups to resolve an IP address
+              to a domain.</td>
           </tr>
           <tr class="hover:bg-stone-900/40">
             <td class="py-3 px-4 text-[rgb(230,130,16)] font-bold">SRV</td>
             <td class="py-3 px-4 text-stone-200">Service Location Record</td>
-            <td class="py-3 px-4 text-stone-400 font-sans">Defines hostname and port numbers for specific services like SIP and LDAP.</td>
+            <td class="py-3 px-4 text-stone-400 font-sans">Defines hostname and port numbers for specific services like
+              SIP and LDAP.</td>
           </tr>
         </tbody>
       </table>

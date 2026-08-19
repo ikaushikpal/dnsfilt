@@ -97,6 +97,45 @@ public class DomainRuleController {
     }
 
     /**
+     * Batch creates or updates multiple domain security filtering rules.
+     */
+    @PostMapping("/batch")
+    @Transactional
+    @CacheEvict(value = CaffeineCacheConfig.CACHE_RULES, allEntries = true)
+    public ResponseEntity<MessageResponse> batchCreateOrUpdateRules(@RequestBody List<CreateDomainRuleRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("No rules provided in batch payload."));
+        }
+
+        int count = 0;
+        for (CreateDomainRuleRequest req : requests) {
+            if (req.domain() == null || req.domain().trim().isEmpty()) continue;
+            String domain = req.domain().trim().toLowerCase();
+            String action = req.action() != null ? req.action() : "BLOCK";
+            String matchType = req.matchType() != null ? req.matchType() : "DOMAIN_AND_SUBDOMAINS";
+            String category = req.category() != null ? req.category() : (action.equals("ALLOW") ? "WHITELIST" : "OTHER");
+            String severity = req.severity() != null ? req.severity() : "MEDIUM";
+            String reason = req.reason() != null ? req.reason() : "Batch imported CSV rule";
+
+            DomainRule rule = domainRuleRepo.findByDomain(domain)
+                    .orElseGet(() -> new DomainRule(domain, action, matchType, category, severity, reason));
+
+            rule.setAction(action);
+            rule.setMatchType(matchType);
+            rule.setCategory(category);
+            rule.setSeverity(severity);
+            rule.setReason(reason);
+            rule.setStatus("ACTIVE");
+
+            DomainRule saved = domainRuleRepo.save(rule);
+            syncService.syncRuleToRedis(saved);
+            count++;
+        }
+
+        return ResponseEntity.ok(new MessageResponse("Successfully processed & imported " + count + " domain rules."));
+    }
+
+    /**
      * Triggers a full synchronization of all active domain rules from Oracle ATP database into Redis.
      * Increments the blocklist version, forcing immediate in-memory cache invalidation across all resolver instances.
      */

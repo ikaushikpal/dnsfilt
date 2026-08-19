@@ -106,6 +106,72 @@ public class AuthController {
     }
 
     /**
+     * POST /api/auth/validate
+     * 
+     * Validates client session. If accessToken is still valid, returns valid: true.
+     * If accessToken is expired, attempts to exchange the refreshToken for a new accessToken.
+     * If both are invalid, returns 401 Unauthorized so client can cleanly log out.
+     */
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateToken(@RequestBody(required = false) Map<String, String> request) {
+        if (request == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("valid", false, "message", "No tokens provided"));
+        }
+
+        String accessToken = request.get("accessToken");
+        String refreshTokenStr = request.get("refreshToken");
+
+        // 1. Check if accessToken is valid and not blacklisted
+        if (accessToken != null && !accessToken.trim().isEmpty() && !tokenBlacklistService.isBlacklisted(accessToken)) {
+            if (tokenProvider.validateToken(accessToken)) {
+                try {
+                    String username = tokenProvider.getUsernameFromJWT(accessToken);
+                    UserEntity user = userRepository.findByUsername(username).orElse(null);
+                    if (user != null) {
+                        return ResponseEntity.ok(Map.of(
+                                "valid", true,
+                                "refreshed", false,
+                                "accessToken", accessToken,
+                                "refreshToken", refreshTokenStr != null ? refreshTokenStr : "",
+                                "username", user.getUsername(),
+                                "role", user.getRole().name()
+                        ));
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 2. AccessToken is expired/invalid -> Attempt to use refreshToken
+        if (refreshTokenStr != null && !refreshTokenStr.trim().isEmpty() && !tokenBlacklistService.isBlacklisted(refreshTokenStr)) {
+            try {
+                RefreshTokenEntity refreshToken = refreshTokenService.findByToken(refreshTokenStr);
+                refreshTokenService.verifyExpiration(refreshToken);
+                UserEntity user = refreshToken.getUser();
+                if (user != null) {
+                    String newAccessToken = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
+                    return ResponseEntity.ok(Map.of(
+                            "valid", true,
+                            "refreshed", true,
+                            "accessToken", newAccessToken,
+                            "refreshToken", refreshToken.getToken(),
+                            "username", user.getUsername(),
+                            "role", user.getRole().name()
+                    ));
+                }
+            } catch (Exception ignored) {
+                // Refresh token also invalid or expired
+            }
+        }
+
+        // 3. Both tokens are invalid -> Return 401
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                "valid", false,
+                "refreshed", false,
+                "message", "Session expired. Please log in again."
+        ));
+    }
+
+    /**
      * POST /api/auth/change-password
      * 
      * Allows an authenticated user to change their password securely.

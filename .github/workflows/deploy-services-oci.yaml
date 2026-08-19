@@ -1,0 +1,128 @@
+# ==============================================================================
+# Workflow Name: CD Deploy to OCI ARM VM
+# Purpose: Automatically connects to your Oracle Cloud Infrastructure (OCI) ARM VM
+#          via SSH and runs deploy scripts with health verification & rollback.
+# ==============================================================================
+name: CD Deploy to OCI ARM VM
+
+on:
+  workflow_run:
+    workflows: ["Release Docker On Main"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - dnsfilt-admin-backend
+          - dnsfilt-analytics
+          - dnsfilt-orchestrator
+      tag:
+        description: 'Docker image tag (default: latest)'
+        required: false
+        default: 'latest'
+
+jobs:
+  deploy-to-oci:
+    name: Deploy to OCI VM
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout Repository Scripts
+        uses: actions/checkout@v4
+
+      - name: Deploy Services via SSH to OCI VM
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          SERVICE_TARGET: ${{ github.event.inputs.service || 'all' }}
+          IMAGE_TAG: ${{ github.event.inputs.tag || 'latest' }}
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER || 'ubuntu' }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          envs: SERVICE_TARGET,IMAGE_TAG,DOCKER_USER
+          script_stop: true
+          script: |
+            set -euo pipefail
+            echo "========================================================"
+            echo "🚀 Connected to OCI Host: $(uname -n) ($(uname -m))"
+            echo "🎯 Target Service: ${SERVICE_TARGET}"
+            echo "🏷️ Image Tag: ${IMAGE_TAG}"
+            echo "========================================================"
+
+            # Create deployment directories if not present
+            sudo mkdir -p /opt/platform/dnsfilt/scripts
+            cd /opt/platform/dnsfilt
+
+            # Deploy Backend
+            if [ "${SERVICE_TARGET}" = "all" ] || [ "${SERVICE_TARGET}" = "dnsfilt-admin-backend" ]; then
+              echo "▶️ Deploying dnsfilt-admin-backend..."
+              if [ -f /opt/platform/dnsfilt/scripts/deploy-backend.sh ]; then
+                sudo chmod +x /opt/platform/dnsfilt/scripts/deploy-backend.sh
+                sudo /opt/platform/dnsfilt/scripts/deploy-backend.sh "${IMAGE_TAG}" "${DOCKER_USER}"
+              else
+                sudo docker pull "${DOCKER_USER}/dnsfilt-admin-backend:${IMAGE_TAG}"
+                sudo docker stop --time 25 dnsfilt-admin-backend || true
+                sudo docker rm dnsfilt-admin-backend || true
+                sudo docker run -d --name dnsfilt-admin-backend --restart unless-stopped -p 9090:9090 \
+                  --add-host kafka-server:host-gateway --add-host host.docker.internal:host-gateway --add-host host.containers.internal:host-gateway \
+                  -v /var/log/dnsfilt/dnsfilt-admin-backend:/app/logs \
+                  --env-file /opt/platform/dnsfilt/dnsfilt-admin-backend/.env --memory 500M \
+                  "${DOCKER_USER}/dnsfilt-admin-backend:${IMAGE_TAG}"
+              fi
+            fi
+
+            # Deploy Analytics
+            if [ "${SERVICE_TARGET}" = "all" ] || [ "${SERVICE_TARGET}" = "dnsfilt-analytics" ]; then
+              echo "▶️ Deploying dnsfilt-analytics..."
+              if [ -f /opt/platform/dnsfilt/scripts/deploy-analytics.sh ]; then
+                sudo chmod +x /opt/platform/dnsfilt/scripts/deploy-analytics.sh
+                sudo /opt/platform/dnsfilt/scripts/deploy-analytics.sh "${IMAGE_TAG}" "${DOCKER_USER}"
+              else
+                sudo docker pull "${DOCKER_USER}/dnsfilt-analytics:${IMAGE_TAG}"
+                sudo docker stop --time 25 dnsfilt-analytics || true
+                sudo docker rm dnsfilt-analytics || true
+                sudo docker run -d --name dnsfilt-analytics --restart unless-stopped -p 9091:9091 \
+                  --add-host kafka-server:host-gateway --add-host host.docker.internal:host-gateway \
+                  -v /var/log/dnsfilt/dnsfilt-analytics:/app/logs:z \
+                  --env-file /opt/platform/dnsfilt/dnsfilt-analytics/.env \
+                  "${DOCKER_USER}/dnsfilt-analytics:${IMAGE_TAG}"
+              fi
+            fi
+
+            # Deploy Orchestrator
+            if [ "${SERVICE_TARGET}" = "all" ] || [ "${SERVICE_TARGET}" = "dnsfilt-orchestrator" ]; then
+              echo "▶️ Deploying dnsfilt-orchestrator..."
+              if [ -f /opt/platform/dnsfilt/scripts/deploy-orchestrator.sh ]; then
+                sudo chmod +x /opt/platform/dnsfilt/scripts/deploy-orchestrator.sh
+                sudo /opt/platform/dnsfilt/scripts/deploy-orchestrator.sh "${IMAGE_TAG}" "${DOCKER_USER}"
+              else
+                sudo docker pull "${DOCKER_USER}/dnsfilt-orchestrator:${IMAGE_TAG}"
+                sudo docker stop --time 25 dnsfilt-orchestrator || true
+                sudo docker rm dnsfilt-orchestrator || true
+                sudo docker run -d --name dnsfilt-orchestrator --restart unless-stopped --privileged -p 9095:9095 \
+                  --add-host kafka-server:host-gateway --add-host host.docker.internal:host-gateway --add-host host.containers.internal:host-gateway \
+                  -v /var/run/docker.sock:/var/run/docker.sock:z \
+                  -v /etc/nginx/conf.d/dns_stream.conf:/etc/nginx/conf.d/dns_stream.conf:z \
+                  -v /opt/platform/dnsfilt/haproxy/haproxy.cfg:/etc/haproxy/haproxy.cfg:z \
+                  -v /opt/platform/dnsfilt/dnsfilt-orchestrator/data:/app/data:z \
+                  -v /var/log/dnsfilt/dnsfilt-orchestrator:/app/logs:z \
+                  -v /opt/platform/dnsfilt/dnsfilt-resolver/.env:/opt/platform/dnsfilt/dnsfilt-resolver/.env:ro \
+                  --env-file /opt/platform/dnsfilt/dnsfilt-orchestrator/.env \
+                  "${DOCKER_USER}/dnsfilt-orchestrator:${IMAGE_TAG}"
+              fi
+            fi
+
+            echo "========================================================"
+            echo "✅ Deployment completed successfully on OCI VM!"
+            sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+            echo "========================================================"
