@@ -16,6 +16,17 @@ PORT="9091"
 ENV_FILE="${ENV_FILE:-/opt/platform/dnsfilt/dnsfilt-analytics/.env}"
 LOG_DIR="${LOG_DIR_LOCAL:-/var/log/dnsfilt/dnsfilt-analytics}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EMAIL_REPORTER="${SCRIPT_DIR}/send_deploy_email.py"
+
+notify_email() {
+    local status="$1"
+    local error_msg="${2:-}"
+    if [ -f "${EMAIL_REPORTER}" ] && command -v python3 >/dev/null 2>&1; then
+        python3 "${EMAIL_REPORTER}" "${CONTAINER_NAME}" "${status}" "${TAG}" "${PORT}" "${error_msg}" || true
+    fi
+}
+
 # 1. Use sudo docker to access rootful containers and system ports
 if command -v sudo >/dev/null 2>&1; then
     DOCKER="sudo docker"
@@ -83,27 +94,31 @@ $DOCKER run -d \
 # 6. Verification Check
 echo "🔍 Verifying ${CONTAINER_NAME} runtime state..."
 HEALTHY=false
-for i in $(seq 1 12); do
+for i in $(seq 1 20); do
     sleep 2
-    IS_RUNNING=$($DOCKER ps --format '{{.Names}}' 2>/dev/null | grep -Fqx "${CONTAINER_NAME}" && echo "yes" || echo "no")
-    if [ "$IS_RUNNING" = "yes" ]; then
-        STATUS=$($DOCKER inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" 2>/dev/null || true)
-        if [ "$STATUS" = "running" ]; then
+    STATUS=$($DOCKER inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "unknown")
+    
+    if [ "$STATUS" = "running" ]; then
+        if [ "$i" -ge 4 ]; then
             HEALTHY=true
-            echo "✅ Analytics container is running stably."
+            echo "✅ Analytics container running stably."
             break
         fi
-    else
-        echo "❌ Container exited unexpectedly."
+    elif [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
+        echo "❌ Container process terminated with status: ${STATUS}"
         break
     fi
-    echo "⏳ Initializing telemetry consumer (attempt $i/12)..."
+    echo "⏳ Initializing telemetry consumer (attempt $i/20, status: ${STATUS})..."
 done
 
 # 7. Rollback on failure
 if [ "$HEALTHY" = false ]; then
     echo "🚨 Deployment verification failed! Logs:"
-    $DOCKER logs --tail 40 "${CONTAINER_NAME}" || true
+    CONTAINER_LOGS=$($DOCKER logs --tail 30 "${CONTAINER_NAME}" 2>&1 || true)
+    echo "${CONTAINER_LOGS}"
+    
+    notify_email "FAILED" "Analytics container health verification failed on port ${PORT}.\nRecent Logs:\n${CONTAINER_LOGS}"
+
     if [ -n "$PREV_IMAGE" ]; then
         echo "🔄 Rolling back to: ${PREV_IMAGE}"
         $DOCKER stop --time 10 "${CONTAINER_NAME}" || true
@@ -122,3 +137,4 @@ if [ "$HEALTHY" = false ]; then
 fi
 
 echo "🎉 ${CONTAINER_NAME} (${TAG}) deployed successfully!"
+notify_email "SUCCESS"

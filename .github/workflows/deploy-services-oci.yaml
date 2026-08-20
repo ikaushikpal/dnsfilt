@@ -56,11 +56,14 @@ jobs:
           SERVICE_TARGET: ${{ github.event.inputs.service || 'all' }}
           IMAGE_TAG: ${{ github.event.inputs.tag || 'latest' }}
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME || 'ikaushikpal' }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD || '' }}
+          GMAIL_SENDER: ${{ secrets.GMAIL_SENDER || 'iamkaushik2014@gmail.com' }}
+          GMAIL_RECIPIENT: ${{ secrets.GMAIL_RECIPIENT || 'iamkaushik2014@gmail.com' }}
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USER || 'ubuntu' }}
           key: ${{ secrets.OCI_SSH_KEY }}
-          envs: SERVICE_TARGET,IMAGE_TAG,DOCKER_USER
+          envs: SERVICE_TARGET,IMAGE_TAG,DOCKER_USER,GMAIL_APP_PASSWORD,GMAIL_SENDER,GMAIL_RECIPIENT
           script_stop: true
           script: |
             set -euo pipefail
@@ -72,7 +75,7 @@ jobs:
             echo "========================================================"
 
             # Make copied scripts executable
-            chmod +x ~/dnsfilt_deploy/scripts/*.sh
+            chmod +x ~/dnsfilt_deploy/scripts/*.sh ~/dnsfilt_deploy/scripts/*.py 2>/dev/null || true
 
             # Deploy Backend
             if [ "${SERVICE_TARGET}" = "all" ] || [ "${SERVICE_TARGET}" = "dnsfilt-admin-backend" ]; then
