@@ -50,23 +50,13 @@ sudo mkdir -p "${LOG_DIR}" 2>/dev/null || mkdir -p "${LOG_DIR}" 2>/dev/null || t
 echo "📥 Pulling image ${IMAGE}..."
 $DOCKER pull "${IMAGE}"
 
-# 3. Stop running containers (both rootful and rootless to guarantee port release)
-PREV_IMAGE=""
-if $DOCKER ps -a --format '{{.Names}}' 2>/dev/null | grep -Fqx "${CONTAINER_NAME}"; then
-    PREV_IMAGE=$($DOCKER inspect --format '{{.Config.Image}}' "${CONTAINER_NAME}" 2>/dev/null || true)
-    echo "⏸️  Gracefully stopping existing ${CONTAINER_NAME} (allowing 25s for cleanup)..."
-    $DOCKER stop --time 25 "${CONTAINER_NAME}" || true
-    $DOCKER rm -f "${CONTAINER_NAME}" || true
-fi
-
-# Cleanup any lingering rootless container instance with same name
-if command -v docker >/dev/null 2>&1 && [ "$DOCKER" != "docker" ]; then
-    if docker ps -a --format '{{.Names}}' 2>/dev/null | grep -Fqx "${CONTAINER_NAME}"; then
-        echo "🧹 Cleaning up rootless ${CONTAINER_NAME}..."
-        docker stop --time 10 "${CONTAINER_NAME}" 2>/dev/null || true
-        docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
-    fi
-fi
+# 3. Unconditionally stop & remove any existing container to guarantee name and port release
+echo "⏸️  Stopping & removing any previous ${CONTAINER_NAME} instance..."
+PREV_IMAGE=$($DOCKER inspect --format '{{.Config.Image}}' "${CONTAINER_NAME}" 2>/dev/null || true)
+$DOCKER stop --time 25 "${CONTAINER_NAME}" 2>/dev/null || true
+$DOCKER rm -f "${CONTAINER_NAME}" 2>/dev/null || true
+docker stop --time 10 "${CONTAINER_NAME}" 2>/dev/null || true
+docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
 
 # Short cooldown to allow kernel socket release
 sleep 2
@@ -124,8 +114,8 @@ if [ "$HEALTHY" = false ]; then
 
     if [ -n "$PREV_IMAGE" ]; then
         echo "🔄 Rolling back to: ${PREV_IMAGE}"
-        $DOCKER stop --time 10 "${CONTAINER_NAME}" || true
-        $DOCKER rm -f "${CONTAINER_NAME}" || true
+        $DOCKER stop --time 10 "${CONTAINER_NAME}" 2>/dev/null || true
+        $DOCKER rm -f "${CONTAINER_NAME}" 2>/dev/null || true
         $DOCKER run -d \
             --name "${CONTAINER_NAME}" \
             --restart unless-stopped \
