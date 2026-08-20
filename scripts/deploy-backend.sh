@@ -83,25 +83,36 @@ $DOCKER run -d \
     --memory 500M \
     "${IMAGE}"
 
-# 6. Verification Check (Allow up to 60 seconds for Spring Boot + Oracle ATP initialization)
+# 6. Verification Check (Allow up to 80 seconds for Spring Boot + Oracle ATP initialization)
+# Spring Boot on OCI A1 ARM + Oracle ATP cold-start can take 25-35s.
 echo "🔍 Verifying ${CONTAINER_NAME} health..."
 HEALTHY=false
-for i in $(seq 1 30); do
+HEALTH_ENDPOINTS=(
+    "http://127.0.0.1:${PORT}/actuator/health"
+    "http://127.0.0.1:${PORT}/api/auth/validate"
+    "http://127.0.0.1:${PORT}/"
+)
+for i in $(seq 1 40); do
     sleep 2
     STATUS=$($DOCKER inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "unknown")
-    
-    if [ "$STATUS" = "running" ]; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/actuator/health" 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/api/auth/validate" 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/" 2>/dev/null || true)
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "302" ]; then
-            HEALTHY=true
-            echo "✅ Backend is healthy and accepting traffic! HTTP Response: $HTTP_CODE"
-            break
-        fi
-    elif [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
+
+    if [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
         echo "❌ Container process terminated with status: ${STATUS}"
         break
     fi
-    echo "⏳ Initializing Spring Boot & database (attempt $i/30, status: ${STATUS})..."
+
+    if [ "$STATUS" = "running" ]; then
+        for ENDPOINT in "${HEALTH_ENDPOINTS[@]}"; do
+            HTTP_CODE=$(curl -s --max-time 3 -o /dev/null -w "%{http_code}" "${ENDPOINT}" 2>/dev/null || echo "000")
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "302" ]; then
+                HEALTHY=true
+                echo "✅ Backend is healthy! Endpoint: ${ENDPOINT} → HTTP ${HTTP_CODE}"
+                break 2
+            fi
+        done
+    fi
+
+    echo "⏳ Initializing Spring Boot & database (attempt $i/40, status: ${STATUS})..."
 done
 
 # 7. Rollback on failure

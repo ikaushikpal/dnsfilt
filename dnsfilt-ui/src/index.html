@@ -7,6 +7,14 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
+  <!-- Preconnect to Critical Third-Party CDNs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+  <!-- Preload Critical LCP Hero Image -->
+  <link rel="preload" as="image" href="/images/home.jpg" fetchpriority="high">
+
   <!-- Primary SEO Metadata -->
   <meta name="title" content="DNSFilt | Next-Gen Ultra-Fast Security DNS Resolver">
   <meta name="description" content="DNSFilt is an open-source, high-performance security DNS resolver built on Java 21 Virtual Threads, Dual-Tier (L1 Caffeine + L2 Redis) caching, and real-time Kafka threat telemetry. Protects networks from malware, phishing, and ad-trackers at the DNS layer.">
@@ -21,14 +29,14 @@
   <meta property="og:site_name" content="DNSFilt">
   <meta property="og:title" content="DNSFilt | Next-Gen Ultra-Fast Security DNS Resolver">
   <meta property="og:description" content="High-performance security DNS engine with Java 21 Virtual Threads, sub-millisecond cached resolution, and real-time Kafka threat telemetry.">
-  <meta property="og:image" content="/images/home.jpg">
+  <meta property="og:image" content="https://dnsfilt.mooo.com/images/home.jpg">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://dnsfilt.mooo.com/">
   <meta name="twitter:title" content="DNSFilt | Next-Gen Ultra-Fast Security DNS Resolver">
   <meta name="twitter:description" content="High-performance security DNS engine with Java 21 Virtual Threads, sub-millisecond cached resolution, and real-time Kafka threat telemetry.">
-  <meta name="twitter:image" content="/images/home.jpg">
+  <meta name="twitter:image" content="https://dnsfilt.mooo.com/images/home.jpg">
 
   <!-- Mobile App & Favicons -->
   <meta name="apple-mobile-web-app-capable" content="yes">

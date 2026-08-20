@@ -1,0 +1,16 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /home
+Allow: /learn
+Allow: /about
+Allow: /contact
+Allow: /guide
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /rules
+Disallow: /threats
+Disallow: /clients
+Disallow: /resolvers
+
+Sitemap: https://dnsfilt.mooo.com/sitemap.xml
