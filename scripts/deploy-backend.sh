@@ -16,6 +16,17 @@ PORT="9090"
 ENV_FILE="${ENV_FILE:-/opt/platform/dnsfilt/dnsfilt-admin-backend/.env}"
 LOG_DIR="${LOG_DIR_LOCAL:-/var/log/dnsfilt/dnsfilt-admin-backend}"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EMAIL_REPORTER="${SCRIPT_DIR}/send_deploy_email.py"
+
+notify_email() {
+    local status="$1"
+    local error_msg="${2:-}"
+    if [ -f "${EMAIL_REPORTER}" ] && command -v python3 >/dev/null 2>&1; then
+        python3 "${EMAIL_REPORTER}" "${CONTAINER_NAME}" "${status}" "${TAG}" "${PORT}" "${error_msg}" || true
+    fi
+}
+
 # 1. Use sudo docker to access rootful containers and system ports
 if command -v sudo >/dev/null 2>&1; then
     DOCKER="sudo docker"
@@ -82,30 +93,35 @@ $DOCKER run -d \
     --memory 500M \
     "${IMAGE}"
 
-# 6. Verification Check (Allow up to 30 seconds for Spring Boot startup)
+# 6. Verification Check (Allow up to 60 seconds for Spring Boot + Oracle ATP initialization)
 echo "🔍 Verifying ${CONTAINER_NAME} health..."
 HEALTHY=false
-for i in $(seq 1 15); do
+for i in $(seq 1 30); do
     sleep 2
-    IS_RUNNING=$($DOCKER ps --format '{{.Names}}' 2>/dev/null | grep -Fqx "${CONTAINER_NAME}" && echo "yes" || echo "no")
-    if [ "$IS_RUNNING" = "yes" ]; then
-        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/actuator/health" 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/api/auth/validate" 2>/dev/null || true)
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ]; then
+    STATUS=$($DOCKER inspect --format '{{.State.Status}}' "${CONTAINER_NAME}" 2>/dev/null || echo "unknown")
+    
+    if [ "$STATUS" = "running" ]; then
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/actuator/health" 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/api/auth/validate" 2>/dev/null || curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/" 2>/dev/null || true)
+        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "403" ] || [ "$HTTP_CODE" = "302" ]; then
             HEALTHY=true
-            echo "✅ Backend is healthy! HTTP Response: $HTTP_CODE"
+            echo "✅ Backend is healthy and accepting traffic! HTTP Response: $HTTP_CODE"
             break
         fi
-    else
-        echo "❌ Container exited unexpectedly."
+    elif [ "$STATUS" = "exited" ] || [ "$STATUS" = "dead" ]; then
+        echo "❌ Container process terminated with status: ${STATUS}"
         break
     fi
-    echo "⏳ Initializing (attempt $i/15)..."
+    echo "⏳ Initializing Spring Boot & database (attempt $i/30, status: ${STATUS})..."
 done
 
 # 7. Rollback on failure
 if [ "$HEALTHY" = false ]; then
     echo "🚨 Deployment verification failed! Logs:"
-    $DOCKER logs --tail 40 "${CONTAINER_NAME}" || true
+    CONTAINER_LOGS=$($DOCKER logs --tail 30 "${CONTAINER_NAME}" 2>&1 || true)
+    echo "${CONTAINER_LOGS}"
+    
+    notify_email "FAILED" "Container health verification failed on port ${PORT}.\nRecent Logs:\n${CONTAINER_LOGS}"
+
     if [ -n "$PREV_IMAGE" ]; then
         echo "🔄 Rolling back to: ${PREV_IMAGE}"
         $DOCKER stop --time 10 "${CONTAINER_NAME}" || true
@@ -126,3 +142,4 @@ if [ "$HEALTHY" = false ]; then
 fi
 
 echo "🎉 ${CONTAINER_NAME} (${TAG}) deployed successfully!"
+notify_email "SUCCESS"
