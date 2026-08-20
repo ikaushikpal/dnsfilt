@@ -12,10 +12,12 @@
         </button>
       }
 
-      <a (click)="selectTab('home')" class="flex items-center cursor-pointer select-none" title="DNSFilt Home">
+      <a href="/home" (click)="selectTab('home'); $event.preventDefault()" class="flex items-center cursor-pointer select-none" title="DNSFilt Home">
         <img 
           src="/logo.png" 
           alt="DNSFilt" 
+          width="128" 
+          height="32"
           class="h-7 sm:h-8 w-auto object-contain hover:opacity-90 transition">
       </a>
     </div>
