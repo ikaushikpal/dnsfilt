@@ -21,6 +21,30 @@ class Settings(BaseSettings):
     NGINX_STREAM_CONFIG_PATH: str = os.getenv("NGINX_STREAM_CONFIG_PATH", "/etc/nginx/conf.d/dns_stream.conf")
     NGINX_CONTAINER_NAME: str = os.getenv("NGINX_CONTAINER_NAME", "nginx")
     NGINX_BACKEND_HOST: str = os.getenv("NGINX_BACKEND_HOST", "127.0.0.1")
+
+    # Static upstream IP:port pairs for dns_udp_cluster / dns_tcp_cluster.
+    # When set, the orchestrator writes these verbatim into the Nginx upstream blocks
+    # instead of using dynamically derived container addresses.
+    # Format (env var): comma-separated "ip:port" pairs, e.g. "10.88.16.163:2054,10.88.16.164:2055"
+    # Default: the three fixed Podman container IPs used in production.
+    @property
+    def NGINX_STATIC_UPSTREAM_SERVERS(self) -> list[tuple[str, int]]:
+        raw = os.getenv(
+            "NGINX_STATIC_UPSTREAM_SERVERS",
+            "10.88.16.163:2054,10.88.16.164:2055,10.88.16.165:2056"
+        )
+        result = []
+        for entry in raw.split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            try:
+                ip, port_str = entry.rsplit(":", 1)
+                result.append((ip.strip(), int(port_str.strip())))
+            except (ValueError, AttributeError):
+                import logging
+                logging.getLogger(__name__).warning(f"Ignoring malformed NGINX_STATIC_UPSTREAM_SERVERS entry: '{entry}'")
+        return result
     
     # Docker settings
     RESOLVER_IMAGE_NAME: str = os.getenv("RESOLVER_IMAGE_NAME", "ikaushikpal/dnsfilt-resolver")
