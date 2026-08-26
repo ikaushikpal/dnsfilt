@@ -53,6 +53,6 @@ public enum RCODE {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown RCODE value: " + value);
+        return SERVER_FAILURE; // Safe fallback for unrecognised response codes
     }
 }

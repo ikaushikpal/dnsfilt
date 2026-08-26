@@ -223,7 +223,11 @@ public class AdvancedDnsResolver {
             int rCode = lookup.getResult();
 
             if (records == null || records.length == 0) {
-                logger.error("Failed to resolve {} ({}) via upstream DNS (empty, rCode: {})", QName, qType, rCode);
+                if (rCode == 3) { // NXDOMAIN
+                    logger.debug("Domain does not exist upstream: {} ({}) (NXDOMAIN, rCode: 3)", QName, qType);
+                } else {
+                    logger.warn("Empty response for {} ({}) via upstream DNS (rCode: {})", QName, qType, rCode);
+                }
                 recordMetricsAsync(clientIp, QName, qType.name(), "FAILED", "GENERAL", false, duration, rCode);
                 return null;
             }
@@ -244,7 +248,7 @@ public class AdvancedDnsResolver {
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
-            logger.error("Unexpected error resolving {} ({}): {}", QName, qType, e.getMessage(), e);
+            logger.warn("Unexpected issue resolving {} ({}): {}", QName, qType, e.getMessage());
             recordMetricsAsync(clientIp, QName, qType.name(), "ERROR", "GENERAL", false, duration, 2);
         }
 

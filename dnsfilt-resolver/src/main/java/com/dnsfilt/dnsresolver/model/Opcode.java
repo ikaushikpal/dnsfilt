@@ -15,7 +15,12 @@ package com.dnsfilt.dnsresolver.model;
      * 
      */
 public enum Opcode {
-    QUERY(0), IQUERY(1), STATUS(2);
+    QUERY(0),
+    IQUERY(1),
+    STATUS(2),
+    NOTIFY(4),
+    UPDATE(5),
+    UNKNOWN(-1);
 
     private final int value;
 
@@ -33,6 +38,6 @@ public enum Opcode {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown Opcode value: " + value);
+        return QUERY; // Safe fallback instead of throwing IllegalArgumentException
     }
 }

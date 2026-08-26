@@ -8,6 +8,9 @@ import java.net.UnknownHostException;
 public class RecordEncoder {
 
     public static byte[] encodeRData(String data, int qType) {
+        if (data == null || data.trim().isEmpty()) {
+            return new byte[0];
+        }
         try {
             switch (qType) {
                 case 1: // A Record (IPv4 Address)
@@ -26,12 +29,53 @@ public class RecordEncoder {
                     return encodeSRVRecord(data);
                 case 16: // TXT Record
                     return encodeTXTRecord(data);
+                case 35: // NAPTR Record
+                    return encodeNAPTRRecord(data);
                 default:
-                    throw new IllegalArgumentException("Unsupported QTYPE: " + qType);
+                    return data.getBytes(StandardCharsets.UTF_8);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Encoding error: " + e.getMessage(), e);
+            // Defensively fallback to raw string bytes rather than throwing
+            return data.getBytes(StandardCharsets.UTF_8);
         }
+    }
+
+    // Encoding NAPTR Record (Order, Preference, Flags, Services, Regexp, Replacement)
+    private static byte[] encodeNAPTRRecord(String data) {
+        try {
+            String[] parts = data.split(" ", 6);
+            if (parts.length >= 6) {
+                int order = Integer.parseInt(parts[0]);
+                int preference = Integer.parseInt(parts[1]);
+                byte[] flags = cleanQuotedString(parts[2]).getBytes(StandardCharsets.US_ASCII);
+                byte[] services = cleanQuotedString(parts[3]).getBytes(StandardCharsets.US_ASCII);
+                byte[] regexp = cleanQuotedString(parts[4]).getBytes(StandardCharsets.US_ASCII);
+                byte[] replacement = encodeDomainName(parts[5].replace("\"", ""));
+
+                ByteBuffer buffer = ByteBuffer.allocate(4 + 1 + flags.length + 1 + services.length + 1 + regexp.length + replacement.length);
+                buffer.putShort((short) order);
+                buffer.putShort((short) preference);
+                buffer.put((byte) flags.length);
+                buffer.put(flags);
+                buffer.put((byte) services.length);
+                buffer.put(services);
+                buffer.put((byte) regexp.length);
+                buffer.put(regexp);
+                buffer.put(replacement);
+                return buffer.array();
+            }
+        } catch (Exception ignored) {
+        }
+        return data.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String cleanQuotedString(String str) {
+        if (str == null) return "";
+        str = str.trim();
+        if (str.startsWith("\"") && str.endsWith("\"") && str.length() >= 2) {
+            return str.substring(1, str.length() - 1);
+        }
+        return str;
     }
 
     // Encoding IPv4 Address (A Record)

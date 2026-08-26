@@ -237,13 +237,13 @@ public class DNSHeader {
 
         int flags = buffer.getShort() & 0xFFFF;
         QR qr = (flags >> 15) == 1 ? QR.RESPONSE : QR.QUERY;
-        Opcode opcode = Opcode.values()[(flags >> 11) & 0xF];
+        Opcode opcode = Opcode.fromValue((flags >> 11) & 0xF);
         boolean aa = ((flags >> 10) & 1) == 1;
         boolean tc = ((flags >> 9) & 1) == 1;
         boolean rd = ((flags >> 8) & 1) == 1;
         boolean ra = ((flags >> 7) & 1) == 1;
         Z z = Z.ZERO; // Reserved (must be 0)
-        RCODE rcode = RCODE.values()[flags & 0xF];
+        RCODE rcode = RCODE.fromValue(flags & 0xF);
 
         int qdcount = buffer.getShort() & 0xFFFF;
         int ancount = buffer.getShort() & 0xFFFF;
