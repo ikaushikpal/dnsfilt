@@ -1,13 +1,13 @@
 # 🔐 dnsfilt-admin-backend: Central REST API, Security & UI Gateway
 
-[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
+[![Java 25](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
 [![Spring Security](https://img.shields.io/badge/Security-JWT%20%2B%20RBAC-blue?style=flat-square&logo=springsecurity)](https://spring.io/projects/spring-security)
 [![Angular 21](https://img.shields.io/badge/Frontend-Angular%2021-red?style=flat-square&logo=angular)](https://angular.dev/)
 [![Caffeine Cache](https://img.shields.io/badge/Cache-Caffeine%20L1-blue?style=flat-square)](https://github.com/ben-manes/caffeine)
 [![Oracle ATP](https://img.shields.io/badge/Database-Oracle%20ATP%2023ai-red?style=flat-square&logo=oracle)](https://www.oracle.com/autonomous-database/)
 
-`dnsfilt-admin-backend` is the central control plane, authentication server, and API gateway for the DNSFilt ecosystem. Built with **Spring Boot 3.3** and **Java 26**, it hosts all administrative REST endpoints, enforces Role-Based Access Control (RBAC), interacts with Oracle Autonomous Database 23ai, and embeds the compiled Angular 21 Single-Page Application.
+`dnsfilt-admin-backend` is the central control plane, authentication server, and API gateway for the DNSFilt ecosystem. Built with **Spring Boot 3.3** and **Java 25**, it hosts all administrative REST endpoints, enforces Role-Based Access Control (RBAC), interacts with Oracle Autonomous Database 23ai, and embeds the compiled Angular 21 Single-Page Application.
 
 ---
 

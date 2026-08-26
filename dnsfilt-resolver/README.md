@@ -1,19 +1,19 @@
-# ⚡ dnsfilt-resolver: High-Throughput Java 26 DNS Resolution & Policy Engine
+# ⚡ dnsfilt-resolver: High-Throughput Java 25 DNS Resolution & Policy Engine
 
-[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
+[![Java 25](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Netty / NIO](https://img.shields.io/badge/Networking-NIO%20%2F%20Virtual%20Threads-brightgreen?style=flat-square)](https://openjdk.org/jeps/444)
 [![Caffeine L1 Cache](https://img.shields.io/badge/Cache-Caffeine%20L1-blue?style=flat-square)](https://github.com/ben-manes/caffeine)
 [![Redis L2 Cache](https://img.shields.io/badge/Cache-Redis%20L2-red?style=flat-square&logo=redis)](https://redis.io/)
 [![Kafka Streaming](https://img.shields.io/badge/Kafka-Protobuf%20%2B%20Zstd-purple?style=flat-square&logo=apachekafka)](https://kafka.apache.org/)
 [![PROXY Protocol v1 & v2](https://img.shields.io/badge/Protocol-PROXY%20v1%20%26%20v2-informational?style=flat-square)](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)
 
-`dnsfilt-resolver` is the core, ultra-low-latency DNS resolution and security enforcement microservice of the DNSFilt platform. Written in modern **Java 26**, it utilizes **Virtual Threads (Project Loom)** to process 50,000+ concurrent UDP/TCP queries per second per node with sub-millisecond filtering latency.
+`dnsfilt-resolver` is the core, ultra-low-latency DNS resolution and security enforcement microservice of the DNSFilt platform. Written in modern **Java 25**, it utilizes **Virtual Threads (Project Loom)** to process 50,000+ concurrent UDP/TCP queries per second per node with sub-millisecond filtering latency.
 
 ---
 
 ## 👋 A Note from the Author
 
-> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I designed `dnsfilt-resolver` to demonstrate how Java 26 Virtual Threads and multi-tier memory caching can outperform traditional C/Go resolvers while maintaining enterprise-grade safety.
+> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I designed `dnsfilt-resolver` to demonstrate how Java 25 Virtual Threads and multi-tier memory caching can outperform traditional C/Go resolvers while maintaining enterprise-grade safety.
 >
 > 🔍 **I am currently looking for new software engineering opportunities.** If you find this project interesting or well-architected, and your team is hiring (or you can provide a referral), I'd love to connect with you. Feel free to reach out via GitHub or on [**LinkedIn**](https://www.linkedin.com/in/ikaushikpal).
 >

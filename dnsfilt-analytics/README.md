@@ -1,12 +1,12 @@
 # 📈 dnsfilt-analytics: Stream Processing & Data Rollup Service
 
-[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
+[![Java 25](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
 [![Kafka Stream](https://img.shields.io/badge/Apache%20Kafka-SASL_PLAINTEXT-purple?style=flat-square&logo=apachekafka)](https://kafka.apache.org/)
 [![Zstd JNI](https://img.shields.io/badge/Compression-Zstandard%20Protobuf-blue?style=flat-square)](https://github.com/luben/zstd-jni)
 [![Oracle ATP](https://img.shields.io/badge/Database-Oracle%20ATP%2023ai-red?style=flat-square&logo=oracle)](https://www.oracle.com/autonomous-database/)
 
-`dnsfilt-analytics` is the high-throughput stream consumption and metric aggregation microservice of the DNSFilt platform. Built with **Java 26** and **Spring Boot 3**, it ingests compressed 10-minute telemetry batches from Kafka, unpacks Protocol Buffer payloads in RAM, and performs atomic upserts into Oracle Autonomous Database 23ai.
+`dnsfilt-analytics` is the high-throughput stream consumption and metric aggregation microservice of the DNSFilt platform. Built with **Java 25** and **Spring Boot 3**, it ingests compressed 10-minute telemetry batches from Kafka, unpacks Protocol Buffer payloads in RAM, and performs atomic upserts into Oracle Autonomous Database 23ai.
 
 ---
 
