@@ -5,6 +5,7 @@ package com.dnsfilt.dnsresolver.model;
      *  The values for this field include all codes valid for TYPE field, together with some more general codes whic     can match more than one type of RR.
      */
     public enum TYPE {
+        UNKNOWN(-1),      // Sentinel: unrecognised/unsupported TYPE; triggers NOTIMPL response
         A(1),         // Host address
         NS(2),        // Authoritative name server
         // MD(3),     // Mail destination (obsolete)
@@ -104,7 +105,9 @@ package com.dnsfilt.dnsresolver.model;
                     return type;
                 }
             }
-            throw new IllegalArgumentException("Unknown TYPE value: " + value);
+            // Return UNKNOWN sentinel for unrecognised types (e.g. 65=HTTPS, 64=SVCB).
+            // The caller is responsible for sending a NOTIMPL response instead of crashing.
+            return UNKNOWN;
         }
     }
     

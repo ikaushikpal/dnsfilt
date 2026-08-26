@@ -236,7 +236,7 @@ public class AdvancedDnsResolver {
             DNSResourceRecord record = new DNSResourceRecord(QName, qType, CLASS.IN, 300, rdata);
 
             l1CacheService.putL1(cacheKey, record);
-            asyncTaskExecutor.submit(() -> redisService.set(cacheKey, resolvedData, 300));
+            asyncTaskExecutor.submit(() -> redisService.set(cacheKey, resolvedData, 900)); // 15-min Redis L2 TTL
 
             logger.info("Upstream RESOLVED {} ({}) in {}ms", QName, qType, duration);
             recordMetricsAsync(clientIp, QName, qType.name(), "RESOLVED", "GENERAL", false, duration, rCode);
