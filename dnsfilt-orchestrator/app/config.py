@@ -20,8 +20,10 @@ class Settings(BaseSettings):
     # NGINX Stream Gateway & Load Balancer Configuration
     NGINX_STREAM_CONFIG_PATH: str = os.getenv("NGINX_STREAM_CONFIG_PATH", "/etc/nginx/conf.d/dns_stream.conf")
     NGINX_CONTAINER_NAME: str = os.getenv("NGINX_CONTAINER_NAME", "nginx")
+    # Fallback host used in Nginx upstream entries when a container's ip_address is unavailable.
+    # Normally each resolver container's Podman-assigned IP is used directly from ResolverInstance.
     NGINX_BACKEND_HOST: str = os.getenv("NGINX_BACKEND_HOST", "127.0.0.1")
-    
+
     # Docker settings
     RESOLVER_IMAGE_NAME: str = os.getenv("RESOLVER_IMAGE_NAME", "ikaushikpal/dnsfilt-resolver")
     RESOLVER_PORT_RANGE_START: int = int(os.getenv("RESOLVER_PORT_RANGE_START", 2054))

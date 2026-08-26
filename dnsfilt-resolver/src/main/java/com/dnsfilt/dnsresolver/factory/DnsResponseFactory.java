@@ -80,4 +80,32 @@ public class DnsResponseFactory {
 
         return responseBytes;
     }
+
+    /**
+     * Builds a NOTIMPL (RCODE 4) DNS response for unsupported query types (e.g. HTTPS=65, SVCB=64).
+     * The question section echoes back the raw question bytes so the client can correlate the response.
+     */
+    public static byte[] createNotImplementedResponse(DNSHeader receivedHeader, byte[] rawQuestion) {
+        DNSHeader notImplHeader = new DNSHeader(
+                receivedHeader.getId(),
+                QR.RESPONSE,
+                receivedHeader.getOpcode(),
+                false, // AA
+                false, // TC
+                receivedHeader.isRd(),
+                false, // RA
+                Z.ZERO,
+                RCODE.NOT_IMPLEMENTED,
+                1, // QDCOUNT
+                0, // ANCOUNT
+                0, // NSCOUNT
+                0  // ARCOUNT
+        );
+
+        byte[] headerBytes = notImplHeader.toByteArray();
+        byte[] responseBytes = new byte[headerBytes.length + rawQuestion.length];
+        System.arraycopy(headerBytes, 0, responseBytes, 0, headerBytes.length);
+        System.arraycopy(rawQuestion, 0, responseBytes, headerBytes.length, rawQuestion.length);
+        return responseBytes;
+    }
 }

@@ -20,7 +20,7 @@ public class CacheService {
 
     // Default fallbacks
     private static final long DEFAULT_MAX_SIZE = 10_000L;
-    private static final long DEFAULT_TTL_MINUTES = 5L;
+    private static final long DEFAULT_TTL_MINUTES = 10L;
 
     // L1 Caffeine Cache instance
     private final Cache<String, DNSResourceRecord> l1Cache;

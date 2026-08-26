@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class NginxService:
     def __init__(self):
         self.nginx_stream_path = settings.NGINX_STREAM_CONFIG_PATH
-        self.backend_host = settings.NGINX_BACKEND_HOST or "127.0.0.1"
+        self.backend_host = settings.NGINX_BACKEND_HOST or "10.0.0.222"
 
     def _sanitize_and_deduplicate_ports(self, active_resolvers: list) -> list[int]:
         """
@@ -40,17 +40,40 @@ class NginxService:
     def generate_nginx_stream_config(self, active_resolvers: list) -> str:
         """
         Generates modular NGINX stream upstream configuration.
-        Ensures valid syntax even if resolver list is empty or partially corrupted.
-        """
-        ports = self._sanitize_and_deduplicate_ports(active_resolvers)
-        servers_cfg = ""
 
-        if ports:
-            for p in ports:
-                servers_cfg += f"    server {self.backend_host}:{p};\n"
-        else:
+        Each resolver entry uses its own container IP address and port, producing entries like:
+            server 10.88.16.163:2054;
+            server 10.88.16.164:2055;
+            server 10.88.16.165:2056;
+
+        ip_address is the Podman-assigned container IP stored in ResolverInstance.
+        Falls back to backend_host if ip_address is absent for a given entry.
+        """
+        servers_cfg = ""
+        seen = set()
+
+        for r in active_resolvers:
+            try:
+                raw_port = r.get("port") if isinstance(r, dict) else getattr(r, "port", None)
+                raw_ip   = r.get("ip_address") if isinstance(r, dict) else getattr(r, "ip_address", None)
+                if raw_port is None:
+                    continue
+                port_num = int(raw_port)
+                if not (1024 <= port_num <= 65535):
+                    logger.warning(f"Ignored out-of-range resolver port: {port_num}")
+                    continue
+                if port_num in seen:
+                    logger.debug(f"Filtered out duplicate resolver port: {port_num}")
+                    continue
+                seen.add(port_num)
+                ip = (raw_ip or "").strip() or self.backend_host
+                servers_cfg += f"    server {ip}:{port_num};\n"
+            except (ValueError, TypeError) as pe:
+                logger.warning(f"Skipping malformed resolver record '{r}': {pe}")
+
+        if not servers_cfg:
             # Safe placeholder so NGINX upstream block syntax remains 100% valid
-            logger.warning("No active resolver ports available. Writing fallback dummy upstream.")
+            logger.warning("No active resolver entries available. Writing fallback dummy upstream.")
             servers_cfg = f"    server {self.backend_host}:2053;\n"
 
         return f"""# ==============================================================================
