@@ -1,12 +1,12 @@
 # 📈 dnsfilt-analytics: Stream Processing & Data Rollup Service
 
-[![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange?style=flat-square&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
 [![Kafka Stream](https://img.shields.io/badge/Apache%20Kafka-SASL_PLAINTEXT-purple?style=flat-square&logo=apachekafka)](https://kafka.apache.org/)
 [![Zstd JNI](https://img.shields.io/badge/Compression-Zstandard%20Protobuf-blue?style=flat-square)](https://github.com/luben/zstd-jni)
 [![Oracle ATP](https://img.shields.io/badge/Database-Oracle%20ATP%2023ai-red?style=flat-square&logo=oracle)](https://www.oracle.com/autonomous-database/)
 
-`dnsfilt-analytics` is the high-throughput stream consumption and metric aggregation microservice of the DNSFilt platform. It ingests compressed 10-minute telemetry batches from Kafka, unpacks Protocol Buffer payloads in RAM, and performs atomic upserts into Oracle Autonomous Database 23ai.
+`dnsfilt-analytics` is the high-throughput stream consumption and metric aggregation microservice of the DNSFilt platform. Built with **Java 26** and **Spring Boot 3**, it ingests compressed 10-minute telemetry batches from Kafka, unpacks Protocol Buffer payloads in RAM, and performs atomic upserts into Oracle Autonomous Database 23ai.
 
 ---
 
@@ -58,7 +58,7 @@
 │                    dnsfilt-analytics                        │
 │                                                             │
 │  [ Kafka Listener ]     ──► Consumes 10-min batch streams   │
-│  [ Java 21 SASL JAAS ]  ──► Authenticates to Kafka broker   │
+│  [ Java 25 SASL JAAS ]  ──► Authenticates to Kafka broker   │
 │  [ Zstd Decompressor ]  ──► Decompresses binary payload     │
 │  [ Protobuf Parser ]    ──► Deserializes batch records      │
 │  [ Batch Aggregator ]   ──► Executes atomic MERGE / Upsert  │
@@ -129,9 +129,9 @@ docker run -d \
 - **Cause**: Unresolvable broker hostname on Linux/Podman networks.
 - **Fix**: The service includes pre-flight DNS validation (`resolveBootstrapServers`) to prevent context failure, and maps `kafka-server:host-gateway` in compose.
 
-### 2. `IllegalStateException: Subject.getSubject(AccessControlContext) is deprecated / unsupported` in Java 21
-- **Cause**: Java 21 JEP 411 removed `Subject.getSubject()`, which older Kafka SASL authenticators invoked.
-- **Fix**: We implemented [`Java21SaslCallbackHandler`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics/src/main/java/com/dnsfilt/dnsanalytics/config/Java21SaslCallbackHandler.java), ensuring seamless SASL JAAS authentication on OpenJDK 21+.
+### 2. `IllegalStateException: Subject.getSubject(AccessControlContext) is deprecated / unsupported`
+- **Cause**: OpenJDK JEP 411 removed `Subject.getSubject()`, which older Kafka SASL authenticators invoked.
+- **Fix**: We implemented [`Java21SaslCallbackHandler`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics/src/main/java/com/dnsfilt/dnsanalytics/config/Java21SaslCallbackHandler.java), ensuring seamless SASL JAAS authentication on modern Java 21/25+.
 
 ### 3. `HikariPool-1 - Connection is not available, request timed out`
 - **Cause**: Oracle ATP outbound egress blocked on host firewall or invalid SSL certificate.

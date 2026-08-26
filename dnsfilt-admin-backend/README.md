@@ -1,12 +1,13 @@
 # 🔐 dnsfilt-admin-backend: Central REST API, Security & UI Gateway
 
-[![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange?style=flat-square&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
 [![Spring Security](https://img.shields.io/badge/Security-JWT%20%2B%20RBAC-blue?style=flat-square&logo=springsecurity)](https://spring.io/projects/spring-security)
+[![Angular 21](https://img.shields.io/badge/Frontend-Angular%2021-red?style=flat-square&logo=angular)](https://angular.dev/)
 [![Caffeine Cache](https://img.shields.io/badge/Cache-Caffeine%20L1-blue?style=flat-square)](https://github.com/ben-manes/caffeine)
 [![Oracle ATP](https://img.shields.io/badge/Database-Oracle%20ATP%2023ai-red?style=flat-square&logo=oracle)](https://www.oracle.com/autonomous-database/)
 
-`dnsfilt-admin-backend` is the central control plane, authentication server, and API gateway for the DNSFilt ecosystem. Built with **Spring Boot 3.3** and **Java 21**, it hosts all administrative REST endpoints, enforces Role-Based Access Control (RBAC), interacts with Oracle Autonomous Database 23ai, and embeds the compiled Angular 18 Single-Page Application.
+`dnsfilt-admin-backend` is the central control plane, authentication server, and API gateway for the DNSFilt ecosystem. Built with **Spring Boot 3.3** and **Java 26**, it hosts all administrative REST endpoints, enforces Role-Based Access Control (RBAC), interacts with Oracle Autonomous Database 23ai, and embeds the compiled Angular 21 Single-Page Application.
 
 ---
 
@@ -25,7 +26,7 @@
 `dnsfilt-admin-backend` serves as both the REST API provider and the web server for the platform. It handles user authentication, domain threat policies, custom DNS rewrites, telemetry analytics retrieval, and communicates asynchronously with the Python orchestrator for cluster scaling.
 
 ### Key Capabilities:
-- **📦 Single-Jar Deployment**: Compiles and embeds the Angular 18 frontend inside `src/main/resources/static/`, allowing a single Spring Boot container to serve both APIs and web UI.
+- **📦 Single-Jar Deployment**: Compiles and embeds the Angular 21 frontend inside `src/main/resources/static/`, allowing a single Spring Boot container to serve both APIs and web UI.
 - **⚡ Caffeine In-Memory Caching**:
   - `tokenBlacklist`: Instant JWT revocation on logout (`< 0.01ms`).
   - `rulesCache` / `domainsCache` / `resolverConfigCache`: Evicted automatically via `@CacheEvict` upon any mutation.
