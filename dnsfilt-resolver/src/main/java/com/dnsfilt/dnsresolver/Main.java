@@ -19,8 +19,8 @@ import com.dnsfilt.dnsresolver.model.DNSQuestion;
 import com.dnsfilt.dnsresolver.model.DNSResourceRecord;
 import com.dnsfilt.dnsresolver.model.TYPE;
 import com.dnsfilt.dnsresolver.proxy.DnsClientInfo;
-import com.dnsfilt.dnsresolver.proxy.ProxyProtocolV2Decoder;
-import com.dnsfilt.dnsresolver.proxy.ProxyProtocolV2Decoder.ProxyProtocolResult;
+import com.dnsfilt.dnsresolver.proxy.ProxyProtocolDecoder;
+import com.dnsfilt.dnsresolver.proxy.ProxyProtocolDecoder.ProxyProtocolResult;
 import com.dnsfilt.dnsresolver.service.KafkaProducerService;
 import com.dnsfilt.dnsresolver.utility.RedisManager;
 
@@ -33,8 +33,7 @@ import com.dnsfilt.dnsresolver.utility.RedisManager;
  * - Uses Java 21 Virtual Threads for non-blocking per-packet concurrency.
  * - SO_RCVBUF / SO_SNDBUF set to 8MB OS socket buffers for zero packet drops under traffic bursts.
  * - Employs DnsResponseFactory for binary DNS response serialization.
- * - Supports dual-mode PROXY Protocol v2: if Nginx prepends a PROXY v2 header, the real
- *   client IP is extracted from it; otherwise the datagram is treated as raw DNS (backwards-compat).
+ * - Supports dual-mode PROXY Protocol (v1 text from NGINX 1.20+ and v2 binary) as well as raw DNS datagrams.
  */
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -88,8 +87,8 @@ public class Main {
                 final byte[] packetData  = requestPacket.getData();
                 final java.net.SocketAddress transportPeer = requestPacket.getSocketAddress();
 
-                // --- PROXY Protocol v2 detection ---
-                final ProxyProtocolResult proxyResult = ProxyProtocolV2Decoder.decode(packetData, 0, receivedLength);
+                // --- PROXY Protocol v1 / v2 / raw DNS detection ---
+                final ProxyProtocolResult proxyResult = ProxyProtocolDecoder.decode(packetData, 0, receivedLength);
 
                 // Detailed observability log for packet inspection
                 logger.info(
@@ -105,7 +104,7 @@ public class Main {
                 );
 
                 if (proxyResult == null) {
-                    logger.warn("Dropping malformed PROXY v2 packet, length={}", receivedLength);
+                    logger.warn("Dropping malformed PROXY packet, length={}", receivedLength);
                     continue;
                 }
 
