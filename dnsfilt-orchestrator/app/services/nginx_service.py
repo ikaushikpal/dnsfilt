@@ -55,7 +55,6 @@ class NginxService:
         for r in active_resolvers:
             try:
                 raw_port = r.get("port") if isinstance(r, dict) else getattr(r, "port", None)
-                raw_ip   = r.get("ip_address") if isinstance(r, dict) else getattr(r, "ip_address", None)
                 if raw_port is None:
                     continue
                 port_num = int(raw_port)
@@ -66,8 +65,7 @@ class NginxService:
                     logger.debug(f"Filtered out duplicate resolver port: {port_num}")
                     continue
                 seen.add(port_num)
-                ip = (raw_ip or "").strip() or self.backend_host
-                servers_cfg += f"    server {ip}:{port_num};\n"
+                servers_cfg += f"    server {self.backend_host}:{port_num};\n"
             except (ValueError, TypeError) as pe:
                 logger.warning(f"Skipping malformed resolver record '{r}': {pe}")
 
@@ -90,34 +88,34 @@ upstream dns_tcp_cluster {{
 
     def update_and_reload(self, active_resolvers: list) -> bool:
         """
-        Atomically writes updated NGINX stream upstream configuration and triggers reload.
-        Uses atomic file replacement (.tmp -> final) and creates backups to prevent partial reads.
+        Safely writes updated NGINX stream upstream configuration and triggers reload.
+        Preserves bind-mount inodes in Docker/Podman environments by avoiding os.replace() on mountpoints.
         """
         target_path = self.nginx_stream_path
-        tmp_path = f"{target_path}.tmp"
-        bak_path = f"{target_path}.bak"
 
         try:
             content = self.generate_nginx_stream_config(active_resolvers)
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
 
-            # 1. Backup current config if it exists
+            # 1. Skip write & reload if config has not changed
             if os.path.exists(target_path):
                 try:
-                    shutil.copy2(target_path, bak_path)
-                except Exception as be:
-                    logger.debug(f"Could not create backup of '{target_path}': {be}")
+                    with open(target_path, "r", encoding="utf-8") as f:
+                        current_content = f.read()
+                    if current_content == content:
+                        logger.debug("NGINX stream config is already up-to-date. Skipping reload.")
+                        return True
+                except Exception:
+                    pass
 
-            # 2. Atomic write: write to .tmp file first, flush to disk, then replace
-            with open(tmp_path, "w", encoding="utf-8") as f:
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
+            # 2. Write in-place (preserving file inode for Docker/Podman bind mounts)
+            with open(target_path, "w", encoding="utf-8") as f:
                 f.write(content)
                 f.flush()
                 os.fsync(f.fileno())
 
-            os.replace(tmp_path, target_path)
-            
-            ports_count = len(self._sanitize_and_deduplicate_ports(active_resolvers))
-            logger.info(f"Updated NGINX stream config at {target_path} with {ports_count} active resolver upstreams.")
+            logger.info(f"Updated NGINX stream config at {target_path}")
 
             # 3. Trigger reload on NGINX (Container or Host System)
             self._trigger_nginx_reload()
@@ -125,19 +123,6 @@ upstream dns_tcp_cluster {{
 
         except Exception as e:
             logger.error(f"Error updating NGINX stream config at {target_path}: {e}")
-            # Restore from backup if temp write failed
-            if os.path.exists(bak_path) and not os.path.exists(target_path):
-                try:
-                    shutil.copy2(bak_path, target_path)
-                    logger.info(f"Restored previous NGINX config from backup {bak_path}")
-                except Exception:
-                    pass
-            # Clean up dangling temp file
-            if os.path.exists(tmp_path):
-                try:
-                    os.remove(tmp_path)
-                except Exception:
-                    pass
             return False
 
     def _trigger_nginx_reload(self):

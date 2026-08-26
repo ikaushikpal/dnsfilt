@@ -85,33 +85,44 @@ public class Main {
                 serverSocket.receive(requestPacket);
 
                 final int receivedLength = requestPacket.getLength();
-                final byte[] packetData  = requestPacket.getData(); // do NOT copy — pass slice via offset/length
+                final byte[] packetData  = requestPacket.getData();
+                final java.net.SocketAddress transportPeer = requestPacket.getSocketAddress();
 
                 // --- PROXY Protocol v2 detection ---
-                // decode() returns null for malformed PROXY packets, or a result with
-                // proxyDetected=false for plain DNS datagrams (no PROXY signature).
                 final ProxyProtocolResult proxyResult = ProxyProtocolV2Decoder.decode(packetData, 0, receivedLength);
+
+                // Detailed observability log for packet inspection
+                logger.info(
+                    "DNS packet received: length={}, proxyDetected={}, payloadOffset={}, payloadLength={}, client={}:{}",
+                    receivedLength,
+                    proxyResult != null && proxyResult.proxyDetected,
+                    proxyResult != null ? proxyResult.payloadOffset : -1,
+                    proxyResult != null ? proxyResult.payloadLength : -1,
+                    proxyResult != null && proxyResult.sourceAddress != null
+                        ? proxyResult.sourceAddress.getHostAddress()
+                        : null,
+                    proxyResult != null ? proxyResult.sourcePort : 0
+                );
+
                 if (proxyResult == null) {
-                    // Malformed PROXY v2 header — drop silently (already logged inside decoder)
+                    logger.warn("Dropping malformed PROXY v2 packet, length={}", receivedLength);
                     continue;
                 }
 
-                // Resolve the real client identity
+                // Resolve client identity (for logging, threat intelligence, and analytics)
                 final DnsClientInfo clientInfo;
                 if (proxyResult.proxyDetected && proxyResult.sourceAddress != null) {
-                    // Real client IP from PROXY v2 header (behind Nginx)
                     clientInfo = new DnsClientInfo(proxyResult.sourceAddress, proxyResult.sourcePort);
                 } else {
-                    // No PROXY header — use the UDP packet's sender address directly
-                    clientInfo = DnsClientInfo.fromSocketAddress(requestPacket.getSocketAddress());
+                    clientInfo = DnsClientInfo.fromSocketAddress(transportPeer);
                 }
 
                 final int dnsOffset = proxyResult.payloadOffset;
                 final int dnsLength = proxyResult.payloadLength;
 
-                // Dispatch to virtual thread with DNS-only slice
+                // Dispatch to virtual thread — transportPeer receives the UDP response, clientInfo is for policy/metrics
                 CompletableFuture.runAsync(
-                        () -> processPacket(serverSocket, clientInfo, packetData, dnsOffset, dnsLength, dnsResolver),
+                        () -> processPacket(serverSocket, transportPeer, clientInfo, packetData, dnsOffset, dnsLength, dnsResolver),
                         virtualExecutor);
             }
         } catch (IOException e) {
@@ -141,17 +152,18 @@ public class Main {
     }
 
     /**
-     * Processes a single DNS datagram (after PROXY header has been stripped).
+     * Processes a single DNS datagram.
      *
-     * @param socket     the server socket for sending the response
-     * @param clientInfo resolved client identity (real IP from PROXY v2, or raw packet sender)
-     * @param data       the full receive buffer (PROXY header + DNS payload)
-     * @param dnsOffset  byte offset into data where the DNS payload starts
-     * @param dnsLength  number of DNS payload bytes
-     * @param dnsResolver the resolver to dispatch the question to
+     * @param socket        the server socket for sending the response
+     * @param transportPeer the network socket address to send the UDP response back to (e.g. NGINX)
+     * @param clientInfo    authentic edge client identity (from PROXY v2 or socket) used for metrics/policy
+     * @param data          the full receive buffer
+     * @param dnsOffset     byte offset into data where the DNS payload starts
+     * @param dnsLength     number of DNS payload bytes
+     * @param dnsResolver   the resolver to dispatch the question to
      */
-    private static void processPacket(DatagramSocket socket, DnsClientInfo clientInfo,
-                                      byte[] data, int dnsOffset, int dnsLength,
+    private static void processPacket(DatagramSocket socket, java.net.SocketAddress transportPeer,
+                                      DnsClientInfo clientInfo, byte[] data, int dnsOffset, int dnsLength,
                                       AdvancedDnsResolver dnsResolver) {
         try {
             if (dnsLength < 12) {
@@ -171,19 +183,15 @@ public class Main {
             int questionEnd = Math.min(dnsOffset + 12 + questionLength, dnsOffset + dnsLength);
             byte[] questionBuffer = Arrays.copyOfRange(data, dnsOffset + 12, questionEnd);
 
-            // --- Guard: check for unknown/unsupported TYPE before parsing ---
-            // QTYPE is the last 2 bytes of the question section (at questionEnd - 4).
-            // We read it directly to avoid TYPE.fromValue() having to deal with UNKNOWN
-            // inside DNSQuestion.fromByteArray (which would also need CLASS lookup).
+            // Guard: check for unknown/unsupported TYPE before parsing
             if (questionLength >= 4) {
-                int qtypeValueOffset = questionEnd - 4; // 2 bytes QTYPE, then 2 bytes QCLASS
+                int qtypeValueOffset = questionEnd - 4;
                 int qtypeRaw = ((data[qtypeValueOffset] & 0xFF) << 8) | (data[qtypeValueOffset + 1] & 0xFF);
                 TYPE qtype = TYPE.fromValue(qtypeRaw);
                 if (qtype == TYPE.UNKNOWN) {
                     logger.debug("Unsupported DNS TYPE={} from client {} — responding NOTIMPL", qtypeRaw, clientInfo);
                     byte[] notImplBytes = DnsResponseFactory.createNotImplementedResponse(receivedHeader, questionBuffer);
-                    DatagramPacket response = new DatagramPacket(
-                            notImplBytes, notImplBytes.length, clientInfo.toSocketAddress());
+                    DatagramPacket response = new DatagramPacket(notImplBytes, notImplBytes.length, transportPeer);
                     synchronized (socket) {
                         socket.send(response);
                     }
@@ -205,8 +213,9 @@ public class Main {
                 responseBytes = DnsResponseFactory.createSuccessResponse(receivedHeader, receivedQuestion, responseRecord);
             }
 
-            DatagramPacket responsePacket = new DatagramPacket(
-                    responseBytes, responseBytes.length, clientInfo.toSocketAddress());
+            // CRITICAL: Always send the UDP response back to transportPeer (NGINX), NOT clientInfo!
+            // NGINX handles relaying the response back to the client.
+            DatagramPacket responsePacket = new DatagramPacket(responseBytes, responseBytes.length, transportPeer);
             synchronized (socket) {
                 socket.send(responsePacket);
             }

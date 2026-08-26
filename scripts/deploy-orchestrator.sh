@@ -49,6 +49,8 @@ sudo mkdir -p "${LOG_DIR}" /opt/platform/dnsfilt/dnsfilt-orchestrator/data 2>/de
 # 2. Pull latest image first
 echo "📥 Pulling image ${IMAGE}..."
 $DOCKER pull "${IMAGE}"
+echo "📥 Pre-fetching latest DNS resolver worker image (${DOCKER_USER}/dnsfilt-resolver:${TAG})..."
+$DOCKER pull "${DOCKER_USER}/dnsfilt-resolver:${TAG}" 2>/dev/null || true
 
 # 3. Unconditionally stop & remove any existing container to guarantee name and port release
 echo "⏸️  Stopping & removing any previous ${CONTAINER_NAME} instance..."

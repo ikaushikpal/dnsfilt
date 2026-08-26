@@ -162,7 +162,12 @@ public final class ProxyProtocolV2Decoder {
         // --- Byte 13: address family | protocol ---
         int famProt  = data[offset + 13] & 0xFF;
         int addrFamily = (famProt >> 4) & 0xF;
-        // int protocol = famProt & 0xF;  // STREAM=1, DGRAM=2 — we accept both
+        int protocol   = famProt & 0xF;  // UNSPEC=0, STREAM=1 (TCP), DGRAM=2 (UDP)
+
+        if (protocol != 0x0 && protocol != 0x1 && protocol != 0x2) {
+            logger.warn("Invalid PROXYv2 packet: unsupported transport protocol={}", protocol);
+            return null;
+        }
 
         // --- Bytes 14–15: declared length of variable portion (big-endian uint16) ---
         int declaredLen = ((data[offset + 14] & 0xFF) << 8) | (data[offset + 15] & 0xFF);
