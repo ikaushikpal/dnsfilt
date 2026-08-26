@@ -153,6 +153,12 @@ class DockerService:
                         pass
 
                     try:
+                        logger.info(f"Ensuring latest image '{tag}' is pulled from registry...")
+                        try:
+                            self.client.images.pull(tag)
+                        except Exception as pe:
+                            logger.debug(f"Notice during image pull for '{tag}': {pe}")
+
                         logger.info(f"Attempting to spawn {container_name} with image '{tag}' on port {port} (attempt {attempt}/{MAX_PULL_RETRIES}, net={settings.DOCKER_NETWORK})...")
                         run_kwargs = {
                             "image": tag,
