@@ -1,18 +1,19 @@
-# 🎨 dnsfilt-ui: High-Performance Angular 18 Web Console & Dashboard
+# 🎨 dnsfilt-ui: High-Performance Angular 21 Web Console & Dashboard
 
-[![Angular 18](https://img.shields.io/badge/Angular-18.0-red?style=flat-square&logo=angular)](https://angular.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Angular 21](https://img.shields.io/badge/Angular-21.0-red?style=flat-square&logo=angular)](https://angular.dev/)
+[![Node.js 25](https://img.shields.io/badge/Node.js-25%2B-green?style=flat-square&logo=nodedotjs)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS%203.4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Chart.js](https://img.shields.io/badge/Chart.js-4.4-FF6384?style=flat-square&logo=chartdotjs)](https://www.chartjs.org/)
 [![Lighthouse Score](https://img.shields.io/badge/Lighthouse-Optimized%20(Fast%20LCP)-brightgreen?style=flat-square&logo=googlechrome)](https://developer.chrome.com/docs/lighthouse/)
 
-`dnsfilt-ui` is the modern, responsive web console for the DNSFilt platform. Built with **Angular 18**, **Angular Signals**, **Tailwind CSS**, and modern glassmorphism design principles, it delivers real-time DNS telemetry, threat governance, cluster auto-scaling, and client management.
+`dnsfilt-ui` is the modern, responsive web console for the DNSFilt platform. Built with **Angular 21**, **Node.js 25**, **Angular Signals**, **Tailwind CSS**, and modern glassmorphism design principles, it delivers real-time DNS telemetry, threat governance, cluster auto-scaling, and client management.
 
 ---
 
 ## 👋 A Note from the Author
 
-> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I crafted `dnsfilt-ui` to combine aesthetic excellence with developer ergonomics — using reactive Angular 18 Signals, zero-flicker single-button auth states, and dark-mode glassmorphic visuals.
+> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I crafted `dnsfilt-ui` to combine aesthetic excellence with developer ergonomics — using reactive Angular 21 Signals, zero-flicker single-button auth states, and dark-mode glassmorphic visuals.
 >
 > 🔍 **I am actively seeking new engineering opportunities.** If you appreciate thoughtful frontend architecture, clean component design, and attention to detail, let's connect on [**LinkedIn**](https://www.linkedin.com/in/ikaushikpal).
 >
@@ -26,10 +27,10 @@
 
 ### Key Capabilities:
 - **📊 Real-Time Telemetry Dashboard**: Visualizes 24-hour QPS volume, block rates, cache hit ratios, and average latency with smooth Chart.js analytics.
-- **⚡ Reactive Angular Signals**: Powered by native Angular 18 Signals for fine-grained reactivity and minimal change-detection overhead.
+- **⚡ Reactive Angular Signals**: Powered by native Angular 21 Signals for fine-grained reactivity and minimal change-detection overhead.
 - **🚀 Lighthouse 100% Performance & LCP Optimized**:
   - Hero image (`/images/home.jpg`) preloaded via `<link rel="preload">` with `fetchpriority="high"`.
-  - Compressed high-resolution imagery and lossless logo optimization (249 KB → 22 KB).
+  - Compressed high-resolution imagery and lossless logo optimization.
   - Explicit image dimensions (`width` / `height`) eliminating Cumulative Layout Shift (CLS).
   - Preconnected CDN origins (`cdnjs.cloudflare.com`, `fonts.gstatic.com`).
   - Production `robots.txt` and `sitemap.xml` for search engine crawler indexing.
@@ -47,7 +48,7 @@
 | **Hydration Flicker** | Dual `@if` / `@else` auth buttons causing layout shift on page reload. | **Single Unified `<button>`**: Dynamic label and action bindings based directly on `localStorage` token presence. |
 | **API Port Hardcoding** | Hardcoded `localhost:8080` breaking on custom ports or behind proxies. | **Tiered Port Resolution**: Injects `environment.backendPort` in dev (`4200`) and automatically inherits `window.location.origin` in production. |
 | **Form Poll Interference** | Background polling wiping active form inputs. | **Decoupled Input Signals**: Separates mutable form state from periodic background metrics polls. |
-| **Largest Contentful Paint (LCP)** | Unoptimized raw 6000x4000 background images slowing down first render. | **Responsive Preloading**: Preloaded 1920x1080 compressed hero with `fetchpriority="high"`. |
+| **Largest Contentful Paint (LCP)** | Unoptimized raw 6000x4000 background images slowing down first render. | **Responsive Preloading**: Preloaded compressed hero with `fetchpriority="high"`. |
 
 ---
 
@@ -57,7 +58,7 @@
 ```bash
 cd dnsfilt-ui
 
-# 1. Install dependencies
+# 1. Install dependencies (Node.js 25+)
 npm ci
 
 # 2. Run Angular dev server

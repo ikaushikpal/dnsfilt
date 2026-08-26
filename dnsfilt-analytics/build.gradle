@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.3.5'
-    id 'io.spring.dependency-management' version '1.1.6'
+    id 'org.springframework.boot' version '3.4.5'
+    id 'io.spring.dependency-management' version '1.1.7'
     id 'com.google.protobuf' version '0.9.4'
 }
 
@@ -9,8 +9,16 @@ group = 'com.dnsfilt'
 version = '1.0-SNAPSHOT'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['--release', '25']
+}
+
+springBoot {
+    mainClass = 'com.dnsfilt.dnsanalytics.DnsFiltAnalyticsApplication'
 }
 
 repositories {
@@ -27,8 +35,7 @@ dependencies {
     // Oracle Database 23ai / 26ai Full Autonomous Production Suite (includes JDBC + Wallet Security PKI)
     implementation 'com.oracle.database.jdbc:ojdbc11-production:23.5.0.24.07'
 
-    // Fallback drivers
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    // H2 in-memory database for local dev (no external DB required)
     runtimeOnly 'com.h2database:h2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

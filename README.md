@@ -2,19 +2,19 @@
 
 [![Build Status](https://img.shields.io/badge/Build-Passing-emerald?style=flat-square&logo=github-actions)](https://github.com/ikaushikpal/dnsfilt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Java 21](https://img.shields.io/badge/Java-21%20LTS-orange?style=flat-square&logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Java 26](https://img.shields.io/badge/Java-26-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.5-brightgreen?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
-[![Angular 18](https://img.shields.io/badge/Angular-18.0-red?style=flat-square&logo=angular)](https://angular.dev/)
+[![Angular 21](https://img.shields.io/badge/Angular-21.0-red?style=flat-square&logo=angular)](https://angular.dev/)
 [![Docker Multi-Arch](https://img.shields.io/badge/Docker-AMD64%20%7C%20ARM64-blue?style=flat-square&logo=docker)](https://hub.docker.com/u/ikaushikpal)
-[![PROXY Protocol v2](https://img.shields.io/badge/Protocol-PROXY%20v2%20(UDP%2FTCP)-informational?style=flat-square)](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)
+[![PROXY Protocol v1 & v2](https://img.shields.io/badge/Protocol-PROXY%20v1%20%26%20v2-informational?style=flat-square)](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt)
 
-**DNSFilt** is a high-throughput, enterprise-grade, distributed DNS firewall, policy engine, and analytics platform. Built with Java 21 Virtual Threads (Project Loom), PROXY Protocol v2 envelope parsing, Kafka streaming, Zstandard Protobuf batching, Oracle Autonomous Database 23ai, and an automated Python controller with zero-downtime NGINX Stream & HAProxy load balancing.
+**DNSFilt** is a high-throughput, enterprise-grade, distributed DNS firewall, policy engine, and analytics platform. Built with Java 26 Virtual Threads (Project Loom), universal PROXY Protocol (v1 text & v2 binary) envelope parsing, Kafka streaming, Zstandard Protobuf batching, Oracle Autonomous Database 23ai, and an automated Python controller with zero-downtime NGINX Stream & HAProxy load balancing.
 
 ---
 
 ## 👋 A Note from the Author
 
-> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I built this project to explore high-throughput distributed systems, Java 21 virtual threads, stream-processing analytics rollups, and production-grade zero-downtime orchestration — all running on a modern cloud architecture.
+> Hi! I'm **Kaushik**, the developer behind **DNSFilt**. I built this project to explore high-throughput distributed systems, Java 26 virtual threads, stream-processing analytics rollups, and production-grade zero-downtime orchestration — all running on a modern cloud architecture.
 >
 > 🔍 **I am currently looking for new software engineering opportunities.** If you find this project interesting, innovative, or well-engineered, and your company is hiring (or you can provide a referral), I would genuinely appreciate connecting with you. Feel free to reach out via GitHub or connect with me directly on [**LinkedIn**](https://www.linkedin.com/in/ikaushikpal).
 >
@@ -39,15 +39,15 @@
 DNSFilt is an end-to-end protective DNS gateway that sits between client devices and the upstream internet. It intercepts DNS queries on port 53 / 2053 (UDP/TCP), checks them against an in-memory cached rule engine with sub-millisecond latency, logs real-time security events into an event streaming pipeline, and provides an administrative interface for threat intelligence, custom domain overrides, and dynamic cluster auto-scaling.
 
 ### Key Capabilities:
-- **⚡ Sub-Millisecond Filtering**: Powered by Java 21 virtual threads and Caffeine L1 in-memory caches, capable of handling 50,000+ QPS per node.
-- **🛡️ PROXY Protocol v2 Edge Integration**: Extracts authentic edge client IPs through NGINX Stream / HAProxy gateways without losing client visibility behind NAT or container bridges.
-- **🔒 Dynamic Multi-Tier Caching**:
+- **⚡ Sub-Millisecond Filtering**: Powered by Java 26 virtual threads and Caffeine L1 in-memory caches, capable of handling 50,000+ QPS per node.
+- **🛡️ Universal PROXY Protocol Support (v1 & v2)**: Extracts authentic edge client IPs through NGINX Stream (`proxy_protocol on;`) and HAProxy gateways without losing client visibility behind NAT or container bridges.
+- **🔒 Dynamic Multi-Tier Caching Pipeline**:
   - **L1 In-Memory Fast-Path**: Caffeine cache with **10-minute TTL** (`< 0.05ms`).
   - **L2 Distributed Cache**: Redis store with **15-minute TTL** (`~ 1ms`).
   - **Client DNS Responses**: Returns standard **5-minute TTL (300s)** in DNS records.
 - **📊 10-Minute Batch Analytics**: High-throughput Kafka ingestion compressing telemetry via Protobuf + Zstandard (Zstd) and aggregating rollups into Oracle Autonomous Database 23ai.
 - **🔄 Zero-Downtime Rolling Upgrades**: Custom Python orchestrator managing NGINX Stream (`dns_stream.conf`) and HAProxy configurations with automated graceful reload signals.
-- **🎨 Glassmorphic Single-Page Application**: Angular 18 frontend optimized for fast Largest Contentful Paint (LCP), live UTC synchronization, threat explorer, real-time node scaling controls, and self-service credential management.
+- **🎨 Glassmorphic Single-Page Application**: Angular 21 frontend optimized for fast Largest Contentful Paint (LCP), live UTC synchronization, threat explorer, real-time node scaling controls, and self-service credential management.
 
 ---
 
@@ -55,9 +55,9 @@ DNSFilt is an end-to-end protective DNS gateway that sits between client devices
 
 | Challenge | Traditional Approach | DNSFilt Solution |
 |---|---|---|
-| **High Concurrency Overhead** | Heavy OS threads (1MB stack per thread) limiting socket scalability. | **Java 21 Virtual Threads**: Millions of lightweight concurrent green threads with near-zero memory footprint. |
+| **High Concurrency Overhead** | Heavy OS threads (1MB stack per thread) limiting socket scalability. | **Java 26 Virtual Threads**: Millions of lightweight concurrent green threads with near-zero memory footprint. |
 | **Telemetry Write Amplification** | Writing every single DNS query synchronously to SQL causes database connection pool exhaustion. | **Kafka + Zstd Protobuf Rollup**: Resolver batches 10-minute micro-aggregations with 95%+ compression ratio before atomic persistence. |
-| **Edge NAT IP Masking** | UDP load balancers overwrite client source IP with gateway IP (`10.88.0.1`). | **PROXY Protocol v2 Decoder**: Dual-mode binary envelope extraction restores true client IP/port for every query. |
+| **Edge NAT IP Masking** | UDP load balancers overwrite client source IP with gateway IP (`10.88.0.1`). | **Universal PROXY Decoder (v1 & v2)**: Restores true client IP/port for every query while routing UDP replies back to the load balancer transport peer. |
 | **Cache Invalidation Latency** | Polling database every few minutes leaves a vulnerability window when adding new threat domains. | **Atomic Dual-Tier Caching**: Caffeine L1 in-memory cache on each resolver node invalidated instantly via Redis Pub/Sub sync. |
 | **Upgrades & Scaling Downtime** | Restarting DNS resolvers causes dropped UDP queries and DNS resolution failure on client machines. | **Zero-Downtime Rolling Scaler**: Python reconciler spawns worker nodes on dynamic ports and triggers graceful NGINX / HAProxy reloads. |
 
@@ -73,13 +73,13 @@ flowchart TD
     end
 
     subgraph LoadBalancer["Load Balancing Layer"]
-        GW["NGINX Stream / HAProxy (Port 53 / 2053 UDP & TCP + PROXY v2)"]
+        GW["NGINX Stream / HAProxy (Port 53 / 2053 UDP & TCP + PROXY v1/v2)"]
     end
 
     subgraph ResolverCluster["DNS Resolver Cluster (Worker Nodes)"]
-        R1["dnsfilt-resolver-p2054 (10.88.16.163)"]
-        R2["dnsfilt-resolver-p2055 (10.88.16.164)"]
-        R3["dnsfilt-resolver-p2056 (10.88.16.165)"]
+        R1["dnsfilt-resolver-p2054 (127.0.0.1:2054)"]
+        R2["dnsfilt-resolver-p2055 (127.0.0.1:2055)"]
+        R3["dnsfilt-resolver-p2056 (127.0.0.1:2056)"]
     end
 
     subgraph EventStreaming["Telemetry & Analytics Layer"]
@@ -90,13 +90,13 @@ flowchart TD
 
     subgraph Management["Control Plane & UI"]
         BACKEND["dnsfilt-admin-backend (Spring Boot REST + Security)"]
-        UI["dnsfilt-ui (Angular 18 Single-Page Application)"]
+        UI["dnsfilt-ui (Angular 21 Single-Page Application)"]
         ORCH["dnsfilt-orchestrator (Python Controller & Scaler)"]
         REDIS[("Redis Blocklist Store")]
     end
 
     C1 & C2 -->|"DNS Queries (UDP/TCP)"| GW
-    GW -->|"PROXY v2 + DNS Datagrams"| R1 & R2 & R3
+    GW -->|"PROXY v1/v2 + DNS Datagrams"| R1 & R2 & R3
     R1 & R2 & R3 -->|"Protobuf + Zstd Batches"| KAFKA
     KAFKA --> ANALYTICS
     ANALYTICS -->|"Atomic 10-Min Upserts"| ORACLE
@@ -117,11 +117,11 @@ flowchart TD
 
 | Microservice | Technology Stack | Role & Responsibility |
 |---|---|---|
-| [`dnsfilt-resolver`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-resolver) | Java 21, Netty/NIO, PROXY v2, Caffeine, Jedis, Kafka | Core high-throughput UDP/TCP DNS resolution and policy enforcement engine. |
-| [`dnsfilt-analytics`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics) | Spring Boot 3, Spring Kafka, Zstd-JNI, Oracle JDBC | Consumes compressed analytics batches, aggregates 10-minute metrics, and saves to Oracle DB. |
-| [`dnsfilt-admin-backend`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-admin-backend) | Spring Boot 3, Spring Security, JWT, Oracle ATP | Central administrative REST API, SuperAdmin RBAC, and static host for the Angular UI. |
+| [`dnsfilt-resolver`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-resolver) | Java 26, Netty/NIO, PROXY v1/v2, Caffeine, Jedis, Kafka | Core high-throughput UDP/TCP DNS resolution, NAPTR encoding, and policy enforcement engine. |
+| [`dnsfilt-analytics`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-analytics) | Spring Boot 3, Java 26, Spring Kafka, Zstd-JNI, Oracle JDBC | Consumes compressed analytics batches, aggregates 10-minute metrics, and saves to Oracle DB. |
+| [`dnsfilt-admin-backend`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-admin-backend) | Spring Boot 3, Java 26, Spring Security, JWT, Oracle ATP | Central administrative REST API, SuperAdmin RBAC, and static host for the Angular 21 UI. |
 | [`dnsfilt-orchestrator`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-orchestrator) | Python 3.11, FastAPI, APScheduler, Docker SDK | Autonomous cluster reconciler, NGINX stream/HAProxy configuration generator, and rolling upgrade manager. |
-| [`dnsfilt-ui`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-ui) | Angular 18 (Signals), TailwindCSS, Chart.js | Responsive administrative dashboard, live UTC clock, threat explorer, and cluster scaling UI. |
+| [`dnsfilt-ui`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-ui) | Angular 21 (Signals), Node.js 25, TailwindCSS, Chart.js | Responsive administrative dashboard, live UTC clock, threat explorer, and cluster scaling UI. |
 | [`dnsfilt-render-proxy`](file:///Users/kaushikpal/Desktop/codes/projects/dnsfilt/dnsfilt-render-proxy) | NGINX Alpine | Production edge reverse proxy with SSL termination and WebSocket/HTTP upgrade support. |
 
 ---
@@ -130,8 +130,8 @@ flowchart TD
 
 ### 1. Prerequisites
 - Docker Engine 24+ or Podman 5+
-- Java 21 JDK & Gradle 8+
-- Node.js 20+ & npm
+- Java 26 JDK & Gradle 8+
+- Node.js 25+ & npm
 
 ### 2. Clone the Repository
 ```bash
