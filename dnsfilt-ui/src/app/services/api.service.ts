@@ -142,16 +142,43 @@ export class ApiService {
     });
   }
 
-  getCategoriesBreakdown(): Observable<CategoryBreakdown[]> {
-    return this.http.get<CategoryBreakdown[]>(`${this.apiBase}/v1/analytics/categories`, { headers: this.getHeaders() });
+  getCategoriesBreakdown(params?: { range?: string; month?: string; startDate?: string; endDate?: string }): Observable<CategoryBreakdown[]> {
+    const queryParams: any = {};
+    if (params?.range) queryParams.range = params.range;
+    if (params?.month) queryParams.month = params.month;
+    if (params?.startDate) queryParams.startDate = params.startDate;
+    if (params?.endDate) queryParams.endDate = params.endDate;
+
+    return this.http.get<CategoryBreakdown[]>(`${this.apiBase}/v1/analytics/categories`, {
+      headers: this.getHeaders(),
+      params: queryParams
+    });
   }
 
-  getTopBlocked(): Observable<TopBlockedDomain[]> {
-    return this.http.get<TopBlockedDomain[]>(`${this.apiBase}/v1/analytics/top-blocked`, { headers: this.getHeaders() });
+  getTopBlocked(params?: { range?: string; month?: string; startDate?: string; endDate?: string }): Observable<TopBlockedDomain[]> {
+    const queryParams: any = {};
+    if (params?.range) queryParams.range = params.range;
+    if (params?.month) queryParams.month = params.month;
+    if (params?.startDate) queryParams.startDate = params.startDate;
+    if (params?.endDate) queryParams.endDate = params.endDate;
+
+    return this.http.get<TopBlockedDomain[]>(`${this.apiBase}/v1/analytics/top-blocked`, {
+      headers: this.getHeaders(),
+      params: queryParams
+    });
   }
 
-  getTopClients(): Observable<TopClient[]> {
-    return this.http.get<TopClient[]>(`${this.apiBase}/v1/analytics/top-clients`, { headers: this.getHeaders() });
+  getTopClients(params?: { range?: string; month?: string; startDate?: string; endDate?: string }): Observable<TopClient[]> {
+    const queryParams: any = {};
+    if (params?.range) queryParams.range = params.range;
+    if (params?.month) queryParams.month = params.month;
+    if (params?.startDate) queryParams.startDate = params.startDate;
+    if (params?.endDate) queryParams.endDate = params.endDate;
+
+    return this.http.get<TopClient[]>(`${this.apiBase}/v1/analytics/top-clients`, {
+      headers: this.getHeaders(),
+      params: queryParams
+    });
   }
 
   // --- Domain Rules & Categories ---

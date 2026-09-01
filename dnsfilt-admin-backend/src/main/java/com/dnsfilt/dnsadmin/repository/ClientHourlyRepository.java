@@ -17,6 +17,12 @@ public interface ClientHourlyRepository extends JpaRepository<ClientHourlyStats,
     @Query("SELECT COUNT(DISTINCT c.clientHash) FROM ClientHourlyStats c")
     long countDistinctClients();
 
+    @Query("SELECT COUNT(DISTINCT c.clientHash) FROM ClientHourlyStats c WHERE c.hourTimestamp BETWEEN :start AND :end")
+    long countDistinctClientsBetween(LocalDateTime start, LocalDateTime end);
+
     @Query("SELECT c.clientHash, SUM(c.totalQueries), SUM(c.blockedQueries) FROM ClientHourlyStats c GROUP BY c.clientHash ORDER BY SUM(c.totalQueries) DESC")
     List<Object[]> getClientSummaryAggregate();
+
+    @Query("SELECT c.clientHash, SUM(c.totalQueries), SUM(c.blockedQueries) FROM ClientHourlyStats c WHERE c.hourTimestamp BETWEEN :start AND :end GROUP BY c.clientHash ORDER BY SUM(c.totalQueries) DESC")
+    List<Object[]> getClientSummaryAggregateBetween(LocalDateTime start, LocalDateTime end);
 }

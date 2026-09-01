@@ -1,10 +1,12 @@
 package com.dnsfilt.dnsadmin.controller;
 
-import com.dnsfilt.dnsadmin.config.CaffeineCacheConfig;
 import com.dnsfilt.dnsadmin.dto.analytics.*;
+import com.dnsfilt.dnsadmin.entity.ClientDailyStats;
+import com.dnsfilt.dnsadmin.entity.ClientMonthlyStats;
+import com.dnsfilt.dnsadmin.entity.ResolverDailyStats;
 import com.dnsfilt.dnsadmin.entity.ResolverHourlyStats;
+import com.dnsfilt.dnsadmin.entity.ResolverMonthlyStats;
 import com.dnsfilt.dnsadmin.repository.*;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,8 +20,8 @@ import java.util.*;
  * AnalyticsApiController
  * 
  * Serves live and historical aggregated DNS traffic analytics, security block metrics,
- * category breakdowns, and top query domains supporting custom time ranges (24H, 7D, 30D,
- * specific months, hourly and custom date intervals).
+ * category breakdowns, and top query domains supporting custom time ranges (1H, 24H, 7D, 30D,
+ * specific months, hourly and custom date intervals with multi-tier retention support).
  */
 @RestController
 @RequestMapping("/api/v1/analytics")
@@ -27,16 +29,28 @@ import java.util.*;
 public class AnalyticsApiController {
 
     private final ResolverHourlyRepository resolverHourlyRepo;
+    private final ResolverDailyRepository resolverDailyRepo;
+    private final ResolverMonthlyRepository resolverMonthlyRepo;
     private final ClientHourlyRepository clientHourlyRepo;
+    private final ClientDailyRepository clientDailyRepo;
+    private final ClientMonthlyRepository clientMonthlyRepo;
     private final ClientCategoryHourlyRepository categoryHourlyRepo;
     private final ClientTopDomainsHourlyRepository topDomainsHourlyRepo;
 
     public AnalyticsApiController(ResolverHourlyRepository resolverHourlyRepo,
+                                  ResolverDailyRepository resolverDailyRepo,
+                                  ResolverMonthlyRepository resolverMonthlyRepo,
                                   ClientHourlyRepository clientHourlyRepo,
+                                  ClientDailyRepository clientDailyRepo,
+                                  ClientMonthlyRepository clientMonthlyRepo,
                                   ClientCategoryHourlyRepository categoryHourlyRepo,
                                   ClientTopDomainsHourlyRepository topDomainsHourlyRepo) {
         this.resolverHourlyRepo = resolverHourlyRepo;
+        this.resolverDailyRepo = resolverDailyRepo;
+        this.resolverMonthlyRepo = resolverMonthlyRepo;
         this.clientHourlyRepo = clientHourlyRepo;
+        this.clientDailyRepo = clientDailyRepo;
+        this.clientMonthlyRepo = clientMonthlyRepo;
         this.categoryHourlyRepo = categoryHourlyRepo;
         this.topDomainsHourlyRepo = topDomainsHourlyRepo;
     }
@@ -44,7 +58,8 @@ public class AnalyticsApiController {
     /**
      * GET /api/v1/analytics/summary
      * 
-     * Computes the global or range-filtered DNS traffic summary.
+     * Computes the global, monthly, or custom range-filtered DNS traffic summary across
+     * hourly, daily, and monthly retention tiers.
      */
     @GetMapping("/summary")
     public ResponseEntity<AnalyticsSummaryResponse> getSummary(
@@ -55,31 +70,83 @@ public class AnalyticsApiController {
     ) {
         TimeWindow window = resolveTimeWindow(range, month, startDate, endDate);
 
-        Long totalQueriesObj;
-        Long blockedQueriesObj;
-        Long cacheHitsObj;
-        Double avgLatencyObj;
+        // 1. Direct precomputed Monthly Snapshot if a specific month was requested
+        if (window.isSpecificMonth() && window.yearMonth() != null) {
+            Optional<ResolverMonthlyStats> monthlyOpt = resolverMonthlyRepo.findByYearMonth(window.yearMonth());
+            if (monthlyOpt.isPresent()) {
+                ResolverMonthlyStats m = monthlyOpt.get();
+                long total = m.getTotalQueries();
+                long blocked = m.getBlockedQueries();
+                double blockRate = total > 0 ? (blocked * 100.0) / total : 0.0;
+                double cacheHitRate = total > 0 ? (m.getCacheHits() * 100.0) / total : 0.0;
+                Long clientsObj = clientMonthlyRepo.countDistinctClientsByYearMonth(window.yearMonth());
+                long activeClients = clientsObj != null && clientsObj > 0 ? clientsObj : 1L;
 
-        if (window.isAllTime()) {
-            totalQueriesObj = resolverHourlyRepo.sumTotalQueries();
-            blockedQueriesObj = resolverHourlyRepo.sumBlockedQueries();
-            cacheHitsObj = resolverHourlyRepo.sumCacheHits();
-            avgLatencyObj = resolverHourlyRepo.avgLatencyMs();
-        } else {
-            totalQueriesObj = resolverHourlyRepo.sumTotalQueriesBetween(window.start(), window.end());
-            blockedQueriesObj = resolverHourlyRepo.sumBlockedQueriesBetween(window.start(), window.end());
-            cacheHitsObj = resolverHourlyRepo.sumCacheHitsBetween(window.start(), window.end());
-            avgLatencyObj = resolverHourlyRepo.avgLatencyMsBetween(window.start(), window.end());
+                return ResponseEntity.ok(new AnalyticsSummaryResponse(
+                        total,
+                        blocked,
+                        Math.round(blockRate * 100.0) / 100.0,
+                        Math.round(cacheHitRate * 100.0) / 100.0,
+                        Math.round(m.getAvgLatencyMs() * 100.0) / 100.0,
+                        activeClients
+                ));
+            }
         }
 
-        long totalQueries = totalQueriesObj != null ? totalQueriesObj : 0L;
-        long blockedQueries = blockedQueriesObj != null ? blockedQueriesObj : 0L;
-        long cacheHits = cacheHitsObj != null ? cacheHitsObj : 0L;
-        double avgLatency = avgLatencyObj != null ? avgLatencyObj : 0.0;
+        // 2. Multi-tier aggregation across Daily (for rolled up past data) and Hourly (for active data)
+        LocalDate startD = window.start().toLocalDate();
+        LocalDate endD = window.end().toLocalDate();
+
+        Long hourlyTotal = resolverHourlyRepo.sumTotalQueriesBetween(window.start(), window.end());
+        Long hourlyBlocked = resolverHourlyRepo.sumBlockedQueriesBetween(window.start(), window.end());
+        Long hourlyHits = resolverHourlyRepo.sumCacheHitsBetween(window.start(), window.end());
+        Double hourlyLat = resolverHourlyRepo.avgLatencyMsBetween(window.start(), window.end());
+
+        Long dailyTotal = resolverDailyRepo.sumTotalQueriesBetween(startD, endD);
+        Long dailyBlocked = resolverDailyRepo.sumBlockedQueriesBetween(startD, endD);
+        Long dailyHits = resolverDailyRepo.sumCacheHitsBetween(startD, endD);
+        Double dailyLat = resolverDailyRepo.avgLatencyMsBetween(startD, endD);
+
+        long hTot = hourlyTotal != null ? hourlyTotal : 0L;
+        long hBlk = hourlyBlocked != null ? hourlyBlocked : 0L;
+        long hHit = hourlyHits != null ? hourlyHits : 0L;
+        double hLat = hourlyLat != null ? hourlyLat : 0.0;
+
+        long dTot = dailyTotal != null ? dailyTotal : 0L;
+        long dBlk = dailyBlocked != null ? dailyBlocked : 0L;
+        long dHit = dailyHits != null ? dailyHits : 0L;
+        double dLat = dailyLat != null ? dailyLat : 0.0;
+
+        long totalQueries = hTot + dTot;
+        long blockedQueries = hBlk + dBlk;
+        long cacheHits = hHit + dHit;
+
+        // Fallback to all-time if window was empty or ALL requested
+        if (totalQueries == 0 && (window.isAllTime() || "ALL".equalsIgnoreCase(range))) {
+            Long allHourly = resolverHourlyRepo.sumTotalQueries();
+            Long allDaily = resolverDailyRepo.sumTotalQueries();
+            totalQueries = (allHourly != null ? allHourly : 0L) + (allDaily != null ? allDaily : 0L);
+            Long allHBlk = resolverHourlyRepo.sumBlockedQueries();
+            Long allDBlk = resolverDailyRepo.sumBlockedQueries();
+            blockedQueries = (allHBlk != null ? allHBlk : 0L) + (allDBlk != null ? allDBlk : 0L);
+            Long allHHit = resolverHourlyRepo.sumCacheHits();
+            Long allDHit = resolverDailyRepo.sumCacheHits();
+            cacheHits = (allHHit != null ? allHHit : 0L) + (allDHit != null ? allDHit : 0L);
+        }
+
+        double avgLatency = 0.0;
+        if (totalQueries > 0) {
+            avgLatency = ((hLat * hTot) + (dLat * dTot)) / (double) totalQueries;
+        }
 
         double blockRate = totalQueries > 0 ? (blockedQueries * 100.0) / totalQueries : 0.0;
         double cacheHitRate = totalQueries > 0 ? (cacheHits * 100.0) / totalQueries : 0.0;
-        long activeClients = clientHourlyRepo.countDistinctClients();
+        
+        long activeClients = clientHourlyRepo.countDistinctClientsBetween(window.start(), window.end());
+        if (activeClients == 0) {
+            Long dailyClients = clientDailyRepo.countDistinctClientsBetween(startD, endD);
+            activeClients = dailyClients != null && dailyClients > 0 ? dailyClients : clientHourlyRepo.countDistinctClients();
+        }
 
         AnalyticsSummaryResponse summary = new AnalyticsSummaryResponse(
                 totalQueries,
@@ -87,7 +154,7 @@ public class AnalyticsApiController {
                 Math.round(blockRate * 100.0) / 100.0,
                 Math.round(cacheHitRate * 100.0) / 100.0,
                 Math.round(avgLatency * 100.0) / 100.0,
-                activeClients
+                Math.max(activeClients, 1L)
         );
 
         return ResponseEntity.ok(summary);
@@ -97,6 +164,7 @@ public class AnalyticsApiController {
      * GET /api/v1/analytics/traffic
      * 
      * Returns chronological time-series query & block trends based on requested range and granularity.
+     * Merges hourly live stats with daily historical rollups automatically.
      */
     @GetMapping("/traffic")
     public ResponseEntity<List<TrafficPointResponse>> getTrafficTrend(
@@ -107,41 +175,81 @@ public class AnalyticsApiController {
             @RequestParam(required = false) String granularity
     ) {
         TimeWindow window = resolveTimeWindow(range, month, startDate, endDate);
-        List<ResolverHourlyStats> stats = resolverHourlyRepo.findByHourTimestampBetweenOrderByHourTimestampAsc(window.start(), window.end());
-
         List<TrafficPointResponse> traffic = new ArrayList<>();
 
-        if ("MONTH".equalsIgnoreCase(range) || "30D".equalsIgnoreCase(range) || "DAILY".equalsIgnoreCase(granularity)) {
-            // Aggregate hourly rows into daily buckets
-            Map<String, long[]> dailyMap = new LinkedHashMap<>();
-            DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("MMM dd");
+        boolean isDailyGranularity = "MONTH".equalsIgnoreCase(range)
+                || "30D".equalsIgnoreCase(range)
+                || "7D".equalsIgnoreCase(range)
+                || "DAILY".equalsIgnoreCase(granularity);
 
-            for (ResolverHourlyStats s : stats) {
-                if (s.getHourTimestamp() != null) {
-                    String dayKey = s.getHourTimestamp().format(dayFormatter);
-                    dailyMap.computeIfAbsent(dayKey, k -> new long[2]);
-                    dailyMap.get(dayKey)[0] += s.getTotalQueries();
-                    dailyMap.get(dayKey)[1] += s.getBlockedQueries();
+        if (isDailyGranularity) {
+            // Daily bucket mapping (key: LocalDate)
+            Map<LocalDate, long[]> dailyMap = new TreeMap<>();
+            LocalDate startD = window.start().toLocalDate();
+            LocalDate endD = window.end().toLocalDate();
+
+            // 1. Load from daily historical rollups
+            List<ResolverDailyStats> dailyStats = resolverDailyRepo.findByDateTimestampBetweenOrderByDateTimestampAsc(startD, endD);
+            for (ResolverDailyStats d : dailyStats) {
+                if (d.getDateTimestamp() != null) {
+                    dailyMap.put(d.getDateTimestamp(), new long[]{d.getTotalQueries(), d.getBlockedQueries()});
                 }
             }
 
-            for (Map.Entry<String, long[]> entry : dailyMap.entrySet()) {
-                traffic.add(new TrafficPointResponse(entry.getKey(), entry.getValue()[0], entry.getValue()[1]));
+            // 2. Load and aggregate any active hourly rows
+            List<ResolverHourlyStats> hourlyStats = resolverHourlyRepo.findByHourTimestampBetweenOrderByHourTimestampAsc(window.start(), window.end());
+            for (ResolverHourlyStats h : hourlyStats) {
+                if (h.getHourTimestamp() != null) {
+                    LocalDate dayKey = h.getHourTimestamp().toLocalDate();
+                    dailyMap.computeIfAbsent(dayKey, k -> new long[2]);
+                    dailyMap.get(dayKey)[0] += h.getTotalQueries();
+                    dailyMap.get(dayKey)[1] += h.getBlockedQueries();
+                }
+            }
+
+            DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("MMM dd");
+            for (Map.Entry<LocalDate, long[]> entry : dailyMap.entrySet()) {
+                traffic.add(new TrafficPointResponse(
+                        entry.getKey().format(dayFormatter),
+                        entry.getValue()[0],
+                        entry.getValue()[1]
+                ));
             }
         } else {
             // Hourly series format
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d ha");
-            if ("24H".equalsIgnoreCase(range) || "1H".equalsIgnoreCase(range)) {
-                formatter = DateTimeFormatter.ofPattern("ha");
-            }
+            List<ResolverHourlyStats> stats = resolverHourlyRepo.findByHourTimestampBetweenOrderByHourTimestampAsc(window.start(), window.end());
 
-            for (ResolverHourlyStats stat : stats) {
-                String formattedTime = stat.getHourTimestamp() != null ? stat.getHourTimestamp().format(formatter) : "N/A";
-                traffic.add(new TrafficPointResponse(
-                        formattedTime,
-                        stat.getTotalQueries(),
-                        stat.getBlockedQueries()
-                ));
+            if (!stats.isEmpty()) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d ha");
+                if ("24H".equalsIgnoreCase(range) || "1H".equalsIgnoreCase(range)) {
+                    formatter = DateTimeFormatter.ofPattern("ha");
+                }
+
+                for (ResolverHourlyStats stat : stats) {
+                    String formattedTime = stat.getHourTimestamp() != null ? stat.getHourTimestamp().format(formatter) : "N/A";
+                    traffic.add(new TrafficPointResponse(
+                            formattedTime,
+                            stat.getTotalQueries(),
+                            stat.getBlockedQueries()
+                    ));
+                }
+            } else {
+                // Graceful fallback for past dates where hourly was rolled up to daily:
+                // Return daily points so the user doesn't see a blank chart
+                LocalDate startD = window.start().toLocalDate();
+                LocalDate endD = window.end().toLocalDate();
+                List<ResolverDailyStats> dailyStats = resolverDailyRepo.findByDateTimestampBetweenOrderByDateTimestampAsc(startD, endD);
+                DateTimeFormatter dayFormatter = DateTimeFormatter.ofPattern("MMM dd");
+
+                for (ResolverDailyStats d : dailyStats) {
+                    if (d.getDateTimestamp() != null) {
+                        traffic.add(new TrafficPointResponse(
+                                d.getDateTimestamp().format(dayFormatter),
+                                d.getTotalQueries(),
+                                d.getBlockedQueries()
+                        ));
+                    }
+                }
             }
         }
 
@@ -152,11 +260,19 @@ public class AnalyticsApiController {
      * GET /api/v1/analytics/categories
      */
     @GetMapping("/categories")
-    @Cacheable(value = CaffeineCacheConfig.CACHE_HOURLY_ANALYTICS, key = "'categories'")
-    public ResponseEntity<List<CategoryBreakdownResponse>> getCategoryBreakdown() {
-        List<Object[]> aggregates = categoryHourlyRepo.getCategorySummaryAggregate();
-        List<CategoryBreakdownResponse> categories = new ArrayList<>();
+    public ResponseEntity<List<CategoryBreakdownResponse>> getCategoryBreakdown(
+            @RequestParam(required = false) String range,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        TimeWindow window = resolveTimeWindow(range, month, startDate, endDate);
+        List<Object[]> aggregates = categoryHourlyRepo.getCategorySummaryAggregateBetween(window.start(), window.end());
+        if (aggregates.isEmpty()) {
+            aggregates = categoryHourlyRepo.getCategorySummaryAggregate();
+        }
 
+        List<CategoryBreakdownResponse> categories = new ArrayList<>();
         for (Object[] row : aggregates) {
             String category = row[0] != null ? row[0].toString() : "GENERAL";
             long total = row[1] != null ? ((Number) row[1]).longValue() : 0L;
@@ -171,9 +287,18 @@ public class AnalyticsApiController {
      * GET /api/v1/analytics/top-blocked
      */
     @GetMapping("/top-blocked")
-    @Cacheable(value = CaffeineCacheConfig.CACHE_HOURLY_ANALYTICS, key = "'top-blocked'")
-    public ResponseEntity<List<TopBlockedDomainResponse>> getTopBlockedDomains() {
-        List<Object[]> aggregates = topDomainsHourlyRepo.getTopDomainsAggregate();
+    public ResponseEntity<List<TopBlockedDomainResponse>> getTopBlockedDomains(
+            @RequestParam(required = false) String range,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        TimeWindow window = resolveTimeWindow(range, month, startDate, endDate);
+        List<Object[]> aggregates = topDomainsHourlyRepo.getTopDomainsAggregateBetween(window.start(), window.end());
+        if (aggregates.isEmpty()) {
+            aggregates = topDomainsHourlyRepo.getTopDomainsAggregate();
+        }
+
         List<TopBlockedDomainResponse> list = new ArrayList<>();
         int rank = 1;
 
@@ -201,11 +326,19 @@ public class AnalyticsApiController {
      * GET /api/v1/analytics/top-clients
      */
     @GetMapping("/top-clients")
-    @Cacheable(value = CaffeineCacheConfig.CACHE_HOURLY_ANALYTICS, key = "'top-clients'")
-    public ResponseEntity<List<TopClientResponse>> getTopClients() {
-        List<Object[]> aggregates = clientHourlyRepo.getClientSummaryAggregate();
-        List<TopClientResponse> list = new ArrayList<>();
+    public ResponseEntity<List<TopClientResponse>> getTopClients(
+            @RequestParam(required = false) String range,
+            @RequestParam(required = false) String month,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate
+    ) {
+        TimeWindow window = resolveTimeWindow(range, month, startDate, endDate);
+        List<Object[]> aggregates = clientHourlyRepo.getClientSummaryAggregateBetween(window.start(), window.end());
+        if (aggregates.isEmpty()) {
+            aggregates = clientHourlyRepo.getClientSummaryAggregate();
+        }
 
+        List<TopClientResponse> list = new ArrayList<>();
         for (Object[] row : aggregates) {
             String clientHash = row[0] != null ? row[0].toString() : "unknown";
             long totalQueries = row[1] != null ? ((Number) row[1]).longValue() : 0L;
@@ -237,7 +370,7 @@ public class AnalyticsApiController {
         return ResponseEntity.ok(list);
     }
 
-    private record TimeWindow(LocalDateTime start, LocalDateTime end, boolean isAllTime) {}
+    private record TimeWindow(LocalDateTime start, LocalDateTime end, boolean isAllTime, boolean isSpecificMonth, String yearMonth) {}
 
     private TimeWindow resolveTimeWindow(String range, String month, String startDate, String endDate) {
         LocalDateTime now = LocalDateTime.now();
@@ -247,7 +380,7 @@ public class AnalyticsApiController {
                 YearMonth ym = YearMonth.parse(month.trim());
                 LocalDateTime start = ym.atDay(1).atStartOfDay();
                 LocalDateTime end = ym.atEndOfMonth().atTime(23, 59, 59);
-                return new TimeWindow(start, end, false);
+                return new TimeWindow(start, end, false, true, month.trim());
             } catch (Exception ignored) {}
         }
 
@@ -255,21 +388,21 @@ public class AnalyticsApiController {
             try {
                 LocalDateTime start = LocalDate.parse(startDate.trim()).atStartOfDay();
                 LocalDateTime end = LocalDate.parse(endDate.trim()).atTime(23, 59, 59);
-                return new TimeWindow(start, end, false);
+                return new TimeWindow(start, end, false, false, null);
             } catch (Exception ignored) {}
         }
 
         if ("1H".equalsIgnoreCase(range)) {
-            return new TimeWindow(now.minusHours(1), now, false);
+            return new TimeWindow(now.minusHours(1), now, false, false, null);
         } else if ("7D".equalsIgnoreCase(range)) {
-            return new TimeWindow(now.minusDays(7), now, false);
+            return new TimeWindow(now.minusDays(7), now, false, false, null);
         } else if ("30D".equalsIgnoreCase(range)) {
-            return new TimeWindow(now.minusDays(30), now, false);
+            return new TimeWindow(now.minusDays(30), now, false, false, null);
         } else if ("ALL".equalsIgnoreCase(range)) {
-            return new TimeWindow(now.minusYears(10), now, true);
+            return new TimeWindow(now.minusYears(10), now, true, false, null);
         }
 
         // Default 24H
-        return new TimeWindow(now.minusHours(24), now, false);
+        return new TimeWindow(now.minusHours(24), now, false, false, null);
     }
 }
