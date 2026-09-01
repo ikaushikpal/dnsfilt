@@ -18,6 +18,9 @@ public interface ClientTopDomainsHourlyRepository extends JpaRepository<ClientTo
     @Query("SELECT c.domain, SUM(c.totalQueries), SUM(c.blockedQueries), COUNT(DISTINCT c.clientHash) FROM ClientTopDomainsHourly c GROUP BY c.domain ORDER BY SUM(c.blockedQueries) DESC, SUM(c.totalQueries) DESC")
     List<Object[]> getTopDomainsAggregate();
 
+    @Query("SELECT c.domain, SUM(c.totalQueries), SUM(c.blockedQueries), COUNT(DISTINCT c.clientHash) FROM ClientTopDomainsHourly c WHERE c.hourTimestamp BETWEEN :start AND :end GROUP BY c.domain ORDER BY SUM(c.blockedQueries) DESC, SUM(c.totalQueries) DESC")
+    List<Object[]> getTopDomainsAggregateBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     @Query("SELECT COUNT(DISTINCT c.domain) FROM ClientTopDomainsHourly c WHERE c.clientHash = :clientHash")
     long countDistinctDomainsByClientHash(@Param("clientHash") String clientHash);
 }

@@ -3,6 +3,7 @@ package com.dnsfilt.dnsadmin.repository;
 import com.dnsfilt.dnsadmin.entity.ClientCategoryHourly;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -16,4 +17,7 @@ public interface ClientCategoryHourlyRepository extends JpaRepository<ClientCate
 
     @Query("SELECT c.category, SUM(c.totalQueries), SUM(c.blockedQueries) FROM ClientCategoryHourly c GROUP BY c.category ORDER BY SUM(c.totalQueries) DESC")
     List<Object[]> getCategorySummaryAggregate();
+
+    @Query("SELECT c.category, SUM(c.totalQueries), SUM(c.blockedQueries) FROM ClientCategoryHourly c WHERE c.hourTimestamp BETWEEN :start AND :end GROUP BY c.category ORDER BY SUM(c.totalQueries) DESC")
+    List<Object[]> getCategorySummaryAggregateBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

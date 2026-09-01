@@ -15,24 +15,13 @@ import { Subscription } from 'rxjs';
 export class DashboardComponent implements OnInit, OnDestroy {
   // Preset or custom filter
   selectedTimeRange = signal<'1H' | '24H' | '7D' | '30D' | 'MONTH' | 'CUSTOM'>('24H');
-  selectedMonth = signal<string>('2026-08');
-  startDate = signal<string>('2026-08-01');
-  endDate = signal<string>('2026-08-16');
+  selectedMonth = signal<string>(this.getCurrentMonthString());
+  startDate = signal<string>(this.getPastDateString(7));
+  endDate = signal<string>(this.getTodayDateString());
   selectedGranularity = signal<'HOURLY' | 'DAILY'>('HOURLY');
 
-  // Available past months for picker
-  availableMonths = [
-    { label: 'August 2026 (Current)', value: '2026-08' },
-    { label: 'July 2026', value: '2026-07' },
-    { label: 'June 2026', value: '2026-06' },
-    { label: 'May 2026', value: '2026-05' },
-    { label: 'April 2026', value: '2026-04' },
-    { label: 'March 2026', value: '2026-03' },
-    { label: 'February 2026', value: '2026-02' },
-    { label: 'January 2026', value: '2026-01' },
-    { label: 'December 2025', value: '2025-12' },
-    { label: 'November 2025', value: '2025-11' }
-  ];
+  // Available past months generated dynamically
+  availableMonths: { label: string; value: string }[] = this.generateAvailableMonths();
 
   summary = signal<SummaryStats>({
     totalQueries: 0,
@@ -105,6 +94,46 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.refreshSub) this.refreshSub.unsubscribe();
   }
 
+  private getCurrentMonthString(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  private getTodayDateString(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private getPastDateString(daysAgo: number): string {
+    const past = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    const y = past.getFullYear();
+    const m = String(past.getMonth() + 1).padStart(2, '0');
+    const d = String(past.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  private generateAvailableMonths(): { label: string; value: string }[] {
+    const months: { label: string; value: string }[] = [];
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const now = new Date();
+
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const val = `${y}-${m}`;
+      const isCurrent = i === 0;
+      const label = `${monthNames[d.getMonth()]} ${y}${isCurrent ? ' (Current)' : ''}`;
+      months.push({ label, value: val });
+    }
+    return months;
+  }
+
   prevTopBlockedPage(): void {
     if (this.topBlockedPage() > 1) {
       this.topBlockedPage.update(p => p - 1);
@@ -144,7 +173,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   onRangeChange(range: string): void {
     const validRange = range as ('1H' | '24H' | '7D' | '30D' | 'MONTH' | 'CUSTOM');
     this.selectedTimeRange.set(validRange);
-    if (validRange === 'MONTH' || validRange === '30D') {
+    if (validRange === 'MONTH' || validRange === '30D' || validRange === '7D') {
       this.selectedGranularity.set('DAILY');
     } else if (validRange === '1H' || validRange === '24H') {
       this.selectedGranularity.set('HOURLY');
@@ -194,17 +223,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: () => {}
     });
 
-    this.apiService.getCategoriesBreakdown().subscribe({
+    this.apiService.getCategoriesBreakdown(queryParams).subscribe({
       next: data => { if (data && data.length > 0) this.categoryData.set(data); },
       error: () => {}
     });
 
-    this.apiService.getTopBlocked().subscribe({
+    this.apiService.getTopBlocked(queryParams).subscribe({
       next: data => { if (data && data.length > 0) this.topBlockedData.set(data); },
       error: () => {}
     });
 
-    this.apiService.getTopClients().subscribe({
+    this.apiService.getTopClients(queryParams).subscribe({
       next: data => { if (data && data.length > 0) this.topClientsData.set(data); },
       error: () => {}
     });
