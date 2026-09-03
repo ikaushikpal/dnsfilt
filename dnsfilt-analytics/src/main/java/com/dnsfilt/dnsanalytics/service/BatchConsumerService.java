@@ -14,23 +14,18 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * BatchConsumerService
  * 
- * Core Ingestion Engine for dnsfilt-analytics.
+ * High-performance Ingestion Engine for dnsfilt-analytics.
  * 
- * Processing Workflow:
- * 1. Consumes 10-minute compressed batch payloads from Kafka topic (`dns.analytics.10min`).
- * 2. Decompresses the message payload using high-speed Zstd-JNI native decompression (< 1ms).
- * 3. Deserializes the raw binary payload into a Protobuf `DnsAnalyticsBatch` object graph.
- * 4. Iterates across the 10 one-minute aggregation windows (`MinuteAggregationWindow`).
- * 5. Truncates timestamps to top-of-hour (`hourTimestamp`) and performs atomic upserts:
- *    - ResolverHourlyStats: System-wide queries, allowed, blocked, NXDOMAIN, cache hits, avg latency.
- *    - ClientHourlyStats: Per-client anonymized hashed IP query volume.
- *    - ClientCategoryHourly: Query volume tagged by security categories (ADVERTISING, MALWARE, etc.).
- *    - ClientTopDomainsHourly: Top queried and blocked domain names per client.
+ * Resolves Oracle ORA-12860 sibling row lock deadlocks by:
+ * 1. Pre-aggregating all 10 one-minute windows in memory across the entire batch.
+ * 2. Processing and updating database rows in deterministic sorted order.
+ * 3. Performing single-pass batch upserts per table with phased flushes,
+ *    eliminating interleaved SELECT / UPDATE cycles and repeated row-level lock contention.
  */
 @Service
 public class BatchConsumerService {
@@ -51,10 +46,73 @@ public class BatchConsumerService {
         this.topDomainsHourlyRepo = topDomainsHourlyRepo;
     }
 
+    // In-memory accumulators
+    private static class ResolverAgg {
+        long totalQueries;
+        long allowedQueries;
+        long blockedQueries;
+        long nxdomainQueries;
+        long servfailQueries;
+        long cacheHits;
+        long cacheMisses;
+        double totalLatencyMs;
+    }
+
+    private static class ClientAgg {
+        long totalQueries;
+        long allowedQueries;
+        long blockedQueries;
+        long nxdomainQueries;
+        long servfailQueries;
+        long cacheHits;
+        long cacheMisses;
+    }
+
+    private static class CategoryAgg {
+        long totalQueries;
+        long blockedQueries;
+    }
+
+    private static class DomainAgg {
+        long totalQueries;
+        long blockedQueries;
+        int minRank = Integer.MAX_VALUE;
+    }
+
+    private record ClientHourKey(String clientHash, LocalDateTime hourTimestamp) implements Comparable<ClientHourKey> {
+        @Override
+        public int compareTo(ClientHourKey o) {
+            int cmp = this.clientHash.compareTo(o.clientHash);
+            if (cmp != 0) return cmp;
+            return this.hourTimestamp.compareTo(o.hourTimestamp);
+        }
+    }
+
+    private record ClientCategoryKey(String clientHash, String category, LocalDateTime hourTimestamp) implements Comparable<ClientCategoryKey> {
+        @Override
+        public int compareTo(ClientCategoryKey o) {
+            int cmp = this.clientHash.compareTo(o.clientHash);
+            if (cmp != 0) return cmp;
+            cmp = this.category.compareTo(o.category);
+            if (cmp != 0) return cmp;
+            return this.hourTimestamp.compareTo(o.hourTimestamp);
+        }
+    }
+
+    private record ClientDomainKey(String clientHash, String domain, LocalDateTime hourTimestamp) implements Comparable<ClientDomainKey> {
+        @Override
+        public int compareTo(ClientDomainKey o) {
+            int cmp = this.clientHash.compareTo(o.clientHash);
+            if (cmp != 0) return cmp;
+            cmp = this.domain.compareTo(o.domain);
+            if (cmp != 0) return cmp;
+            return this.hourTimestamp.compareTo(o.hourTimestamp);
+        }
+    }
+
     /**
      * Kafka batch listener.
      * Consumes Zstd-compressed binary Protobuf batches from the analytics topic.
-     * Annotated with @Transactional to guarantee all database updates succeed or roll back atomically.
      */
     @KafkaListener(
         topics = "${kafka.topic:${KAFKA_TOPIC:dns.analytics.10min}}", 
@@ -73,97 +131,179 @@ public class BatchConsumerService {
             logger.info("Decompressed & parsed 10-min analytics batch ID: {} (windows count: {})",
                     batch.getBatchId(), batch.getMinutesCount());
 
-            // 3. Process each 1-minute window in the 10-minute batch
+            // 3. Pre-aggregate entire 10-minute batch in memory into sorted TreeMaps
+            Map<LocalDateTime, ResolverAgg> resolverMap = new TreeMap<>();
+            Map<ClientHourKey, ClientAgg> clientMap = new TreeMap<>();
+            Map<ClientCategoryKey, CategoryAgg> categoryMap = new TreeMap<>();
+            Map<ClientDomainKey, DomainAgg> domainMap = new TreeMap<>();
+
             for (MinuteAggregationWindow window : batch.getMinutesList()) {
                 LocalDateTime hourTs = Instant.ofEpochSecond(window.getWindowTimestamp())
                         .atZone(ZoneId.systemDefault())
                         .toLocalDateTime()
                         .truncatedTo(ChronoUnit.HOURS);
 
-                // Accumulate system-wide resolver metrics
-                processResolverStats(window.getResolverStats(), hourTs);
+                // Accumulate Resolver metrics
+                if (window.hasResolverStats()) {
+                    ResolverMinuteStats rStats = window.getResolverStats();
+                    ResolverAgg rAgg = resolverMap.computeIfAbsent(hourTs, k -> new ResolverAgg());
+                    rAgg.totalQueries += rStats.getTotalQueries();
+                    rAgg.allowedQueries += rStats.getAllowedQueries();
+                    rAgg.blockedQueries += rStats.getBlockedQueries();
+                    rAgg.nxdomainQueries += rStats.getNxdomainQueries();
+                    rAgg.servfailQueries += rStats.getServfailQueries();
+                    rAgg.cacheHits += rStats.getCacheHits();
+                    rAgg.cacheMisses += rStats.getCacheMisses();
+                    rAgg.totalLatencyMs += rStats.getTotalLatencyMs();
+                }
 
-                // Accumulate per-client metrics, category breakdowns, and top domains
-                for (ClientMinuteStats clientStats : window.getClientStatsList()) {
-                    processClientStats(clientStats, hourTs);
+                // Accumulate Per-Client metrics
+                for (ClientMinuteStats cStats : window.getClientStatsList()) {
+                    String hash = cStats.getClientHash();
+                    if (hash == null || hash.isEmpty()) continue;
+
+                    ClientHourKey cKey = new ClientHourKey(hash, hourTs);
+                    ClientAgg cAgg = clientMap.computeIfAbsent(cKey, k -> new ClientAgg());
+                    cAgg.totalQueries += cStats.getTotalQueries();
+                    cAgg.allowedQueries += cStats.getAllowedQueries();
+                    cAgg.blockedQueries += cStats.getBlockedQueries();
+                    cAgg.nxdomainQueries += cStats.getNxdomainQueries();
+                    cAgg.servfailQueries += cStats.getServfailQueries();
+                    cAgg.cacheHits += cStats.getCacheHits();
+                    cAgg.cacheMisses += cStats.getCacheMisses();
+
+                    // Categories
+                    for (CategoryCount cat : cStats.getCategoriesList()) {
+                        String category = cat.getCategory() != null && !cat.getCategory().isEmpty() ? cat.getCategory() : "GENERAL";
+                        ClientCategoryKey catKey = new ClientCategoryKey(hash, category, hourTs);
+                        CategoryAgg catAgg = categoryMap.computeIfAbsent(catKey, k -> new CategoryAgg());
+                        catAgg.totalQueries += cat.getCount();
+                        catAgg.blockedQueries += cat.getBlockedCount();
+                    }
+
+                    // Top Domains
+                    for (TopDomainCount dom : cStats.getTopDomainsList()) {
+                        String domain = dom.getDomain();
+                        if (domain == null || domain.isEmpty()) continue;
+
+                        ClientDomainKey domKey = new ClientDomainKey(hash, domain, hourTs);
+                        DomainAgg domAgg = domainMap.computeIfAbsent(domKey, k -> new DomainAgg());
+                        domAgg.totalQueries += dom.getCount();
+                        domAgg.blockedQueries += dom.getBlockedCount();
+                        if (dom.getRank() > 0 && dom.getRank() < domAgg.minRank) {
+                            domAgg.minRank = dom.getRank();
+                        }
+                    }
                 }
             }
 
-            logger.info("Successfully persisted 10-min batch {} to SQL database.", batch.getBatchId());
+            // 4. Phase 1: Persist Resolver Hourly Stats
+            for (Map.Entry<LocalDateTime, ResolverAgg> entry : resolverMap.entrySet()) {
+                LocalDateTime hourTs = entry.getKey();
+                ResolverAgg agg = entry.getValue();
+
+                ResolverHourlyStats entity = resolverHourlyRepo.findByHourTimestamp(hourTs)
+                        .orElseGet(() -> new ResolverHourlyStats(hourTs, 0, 0, 0, 0, 0, 0, 0, 0.0));
+
+                long newTotal = entity.getTotalQueries() + agg.totalQueries;
+                long newAllowed = entity.getAllowedQueries() + agg.allowedQueries;
+                long newBlocked = entity.getBlockedQueries() + agg.blockedQueries;
+                long newNx = entity.getNxdomainQueries() + agg.nxdomainQueries;
+                long newSf = entity.getServfailQueries() + agg.servfailQueries;
+                long newHits = entity.getCacheHits() + agg.cacheHits;
+                long newMisses = entity.getCacheMisses() + agg.cacheMisses;
+
+                double newAvgLatency = newTotal > 0
+                        ? ((entity.getAvgLatencyMs() * entity.getTotalQueries()) + agg.totalLatencyMs) / (double) newTotal
+                        : 0.0;
+
+                entity.setTotalQueries(newTotal);
+                entity.setAllowedQueries(newAllowed);
+                entity.setBlockedQueries(newBlocked);
+                entity.setNxdomainQueries(newNx);
+                entity.setServfailQueries(newSf);
+                entity.setCacheHits(newHits);
+                entity.setCacheMisses(newMisses);
+                entity.setAvgLatencyMs(newAvgLatency);
+
+                resolverHourlyRepo.save(entity);
+            }
+            resolverHourlyRepo.flush();
+
+            // 5. Phase 2: Persist Client Hourly Stats in deterministic sorted order
+            List<ClientHourlyStats> clientEntities = new ArrayList<>();
+            for (Map.Entry<ClientHourKey, ClientAgg> entry : clientMap.entrySet()) {
+                ClientHourKey key = entry.getKey();
+                ClientAgg agg = entry.getValue();
+
+                ClientHourlyStats entity = clientHourlyRepo.findByClientHashAndHourTimestamp(key.clientHash(), key.hourTimestamp())
+                        .orElseGet(() -> new ClientHourlyStats(key.hourTimestamp(), key.clientHash(), 0, 0, 0, 0, 0, 0, 0));
+
+                entity.setTotalQueries(entity.getTotalQueries() + agg.totalQueries);
+                entity.setAllowedQueries(entity.getAllowedQueries() + agg.allowedQueries);
+                entity.setBlockedQueries(entity.getBlockedQueries() + agg.blockedQueries);
+                entity.setNxdomainQueries(entity.getNxdomainQueries() + agg.nxdomainQueries);
+                entity.setServfailQueries(entity.getServfailQueries() + agg.servfailQueries);
+                entity.setCacheHits(entity.getCacheHits() + agg.cacheHits);
+                entity.setCacheMisses(entity.getCacheMisses() + agg.cacheMisses);
+
+                clientEntities.add(entity);
+            }
+            if (!clientEntities.isEmpty()) {
+                clientHourlyRepo.saveAll(clientEntities);
+                clientHourlyRepo.flush();
+            }
+
+            // 6. Phase 3: Persist Category Breakdowns in deterministic sorted order
+            List<ClientCategoryHourly> catEntities = new ArrayList<>();
+            for (Map.Entry<ClientCategoryKey, CategoryAgg> entry : categoryMap.entrySet()) {
+                ClientCategoryKey key = entry.getKey();
+                CategoryAgg agg = entry.getValue();
+
+                ClientCategoryHourly entity = categoryHourlyRepo.findByClientHashAndCategoryAndHourTimestamp(
+                        key.clientHash(), key.category(), key.hourTimestamp())
+                        .orElseGet(() -> new ClientCategoryHourly(key.hourTimestamp(), key.clientHash(), key.category(), 0, 0));
+
+                entity.setTotalQueries(entity.getTotalQueries() + agg.totalQueries);
+                entity.setBlockedQueries(entity.getBlockedQueries() + agg.blockedQueries);
+
+                catEntities.add(entity);
+            }
+            if (!catEntities.isEmpty()) {
+                categoryHourlyRepo.saveAll(catEntities);
+                categoryHourlyRepo.flush();
+            }
+
+            // 7. Phase 4: Persist Top Domains in deterministic sorted order
+            List<ClientTopDomainsHourly> domEntities = new ArrayList<>();
+            for (Map.Entry<ClientDomainKey, DomainAgg> entry : domainMap.entrySet()) {
+                ClientDomainKey key = entry.getKey();
+                DomainAgg agg = entry.getValue();
+
+                int rank = agg.minRank == Integer.MAX_VALUE ? 1 : agg.minRank;
+                ClientTopDomainsHourly entity = topDomainsHourlyRepo.findByClientHashAndDomainAndHourTimestamp(
+                        key.clientHash(), key.domain(), key.hourTimestamp())
+                        .orElseGet(() -> new ClientTopDomainsHourly(key.hourTimestamp(), key.clientHash(), key.domain(), 0, 0, rank));
+
+                entity.setTotalQueries(entity.getTotalQueries() + agg.totalQueries);
+                entity.setBlockedQueries(entity.getBlockedQueries() + agg.blockedQueries);
+                if (agg.minRank != Integer.MAX_VALUE) {
+                    entity.setDomainRank(agg.minRank);
+                }
+
+                domEntities.add(entity);
+            }
+            if (!domEntities.isEmpty()) {
+                topDomainsHourlyRepo.saveAll(domEntities);
+                topDomainsHourlyRepo.flush();
+            }
+
+            logger.info("Successfully persisted 10-min batch {} (clients: {}, categories: {}, domains: {})",
+                    batch.getBatchId(), clientEntities.size(), catEntities.size(), domEntities.size());
 
         } catch (Exception e) {
             logger.error("Failed to process incoming 10-min analytics batch: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Upserts system-wide hourly stats (queries, blocks, cache hits, avg latency).
-     */
-    private void processResolverStats(ResolverMinuteStats rStats, LocalDateTime hourTs) {
-        Optional<ResolverHourlyStats> existingOpt = resolverHourlyRepo.findByHourTimestamp(hourTs);
-        ResolverHourlyStats entity = existingOpt.orElseGet(() -> new ResolverHourlyStats(hourTs, 0, 0, 0, 0, 0, 0, 0, 0.0));
-
-        long newTotal = entity.getTotalQueries() + rStats.getTotalQueries();
-        long newAllowed = entity.getAllowedQueries() + rStats.getAllowedQueries();
-        long newBlocked = entity.getBlockedQueries() + rStats.getBlockedQueries();
-        long newNx = entity.getNxdomainQueries() + rStats.getNxdomainQueries();
-        long newSf = entity.getServfailQueries() + rStats.getServfailQueries();
-        long newHits = entity.getCacheHits() + rStats.getCacheHits();
-        long newMisses = entity.getCacheMisses() + rStats.getCacheMisses();
-
-        double newAvgLatency = newTotal > 0 ? ((entity.getAvgLatencyMs() * entity.getTotalQueries()) + rStats.getTotalLatencyMs()) / (double) newTotal : 0.0;
-
-        entity.setTotalQueries(newTotal);
-        entity.setAllowedQueries(newAllowed);
-        entity.setBlockedQueries(newBlocked);
-        entity.setNxdomainQueries(newNx);
-        entity.setServfailQueries(newSf);
-        entity.setCacheHits(newHits);
-        entity.setCacheMisses(newMisses);
-        entity.setAvgLatencyMs(newAvgLatency);
-
-        resolverHourlyRepo.save(entity);
-    }
-
-    /**
-     * Upserts per-client hourly traffic, category breakdowns, and top queried domains.
-     */
-    private void processClientStats(ClientMinuteStats cStats, LocalDateTime hourTs) {
-        String hash = cStats.getClientHash();
-
-        // 1. Client Hourly Volume
-        Optional<ClientHourlyStats> clientOpt = clientHourlyRepo.findByClientHashAndHourTimestamp(hash, hourTs);
-        ClientHourlyStats clientEntity = clientOpt.orElseGet(() -> new ClientHourlyStats(hourTs, hash, 0, 0, 0, 0, 0, 0, 0));
-
-        clientEntity.setTotalQueries(clientEntity.getTotalQueries() + cStats.getTotalQueries());
-        clientEntity.setAllowedQueries(clientEntity.getAllowedQueries() + cStats.getAllowedQueries());
-        clientEntity.setBlockedQueries(clientEntity.getBlockedQueries() + cStats.getBlockedQueries());
-        clientEntity.setNxdomainQueries(clientEntity.getNxdomainQueries() + cStats.getNxdomainQueries());
-        clientEntity.setServfailQueries(clientEntity.getServfailQueries() + cStats.getServfailQueries());
-        clientEntity.setCacheHits(clientEntity.getCacheHits() + cStats.getCacheHits());
-        clientEntity.setCacheMisses(clientEntity.getCacheMisses() + cStats.getCacheMisses());
-
-        clientHourlyRepo.save(clientEntity);
-
-        // 2. Client Category Breakdown (ADVERTISING, MALWARE, PHISHING, etc.)
-        for (CategoryCount cat : cStats.getCategoriesList()) {
-            Optional<ClientCategoryHourly> catOpt = categoryHourlyRepo.findByClientHashAndCategoryAndHourTimestamp(hash, cat.getCategory(), hourTs);
-            ClientCategoryHourly catEntity = catOpt.orElseGet(() -> new ClientCategoryHourly(hourTs, hash, cat.getCategory(), 0, 0));
-
-            catEntity.setTotalQueries(catEntity.getTotalQueries() + cat.getCount());
-            catEntity.setBlockedQueries(catEntity.getBlockedQueries() + cat.getBlockedCount());
-            categoryHourlyRepo.save(catEntity);
-        }
-
-        // 3. Client Top Requested Domains
-        for (TopDomainCount dom : cStats.getTopDomainsList()) {
-            Optional<ClientTopDomainsHourly> domOpt = topDomainsHourlyRepo.findByClientHashAndDomainAndHourTimestamp(hash, dom.getDomain(), hourTs);
-            ClientTopDomainsHourly domEntity = domOpt.orElseGet(() -> new ClientTopDomainsHourly(hourTs, hash, dom.getDomain(), 0, 0, dom.getRank()));
-
-            domEntity.setTotalQueries(domEntity.getTotalQueries() + dom.getCount());
-            domEntity.setBlockedQueries(domEntity.getBlockedQueries() + dom.getBlockedCount());
-            domEntity.setDomainRank(dom.getRank());
-            topDomainsHourlyRepo.save(domEntity);
+            throw new RuntimeException("Error processing 10-min batch", e);
         }
     }
 }
