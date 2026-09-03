@@ -126,7 +126,8 @@ public class KafkaConsumerConfig {
         factory.getContainerProperties().setAuthExceptionRetryInterval(Duration.ofSeconds(10));
         factory.getContainerProperties().setPollTimeout(3000L);
         
-        factory.setCommonErrorHandler(new DefaultErrorHandler(new FixedBackOff(3000L, FixedBackOff.UNLIMITED_ATTEMPTS)));
+        // Retry up to 3 times with 2s pause before advancing, preventing infinite retry deadlock loops
+        factory.setCommonErrorHandler(new DefaultErrorHandler(new FixedBackOff(2000L, 3L)));
         return factory;
     }
 
